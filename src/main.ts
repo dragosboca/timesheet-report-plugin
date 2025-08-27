@@ -1,4 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { TimesheetReportView, VIEW_TYPE_TIMESHEET } from './view';
 import { DEFAULT_SETTINGS, TimesheetReportSettings, TimesheetReportSettingTab } from './settings';
 import { DebugLogger } from './debug-logger';

@@ -1,14 +1,13 @@
 // chart-renderer.ts
-import TimesheetReportPlugin from './main';
 
 declare global {
     interface Window {
-        Chart: any;
+        Chart: unknown;
     }
 }
 
 export class ChartRenderer {
-    private chartScriptLoaded: boolean = false;
+    private chartScriptLoaded = false;
 
     constructor() {
         this.ensureChartScriptLoaded();
@@ -80,10 +79,9 @@ export class ChartRenderer {
 
         // Format data for chart
         const maxHours = Math.max(...data.hours);
-        const maxUtilization = 100; // Percentage scale
 
         // Create chart
-        new window.Chart(canvas, {
+        new (window.Chart as any)(canvas, {
             type: 'line',
             data: {
                 labels: data.labels,
@@ -198,7 +196,7 @@ export class ChartRenderer {
         });
     }
 
-    async renderMonthlyChart(container: HTMLElement, monthlyData: any[]): Promise<void> {
+    async renderMonthlyChart(container: HTMLElement, monthlyData: Array<{ label: string; hours: number; invoiced: number; }>): Promise<void> {
         await this.ensureChartScriptLoaded();
 
         const colors = this.getColorPalette();
@@ -221,7 +219,7 @@ export class ChartRenderer {
         const invoiced = recentData.map(item => item.invoiced);
 
         // Create chart
-        new window.Chart(canvas, {
+        new (window.Chart as any)(canvas, {
             type: 'bar',
             data: {
                 labels: labels,
@@ -324,7 +322,7 @@ export class ChartRenderer {
                         },
                         ticks: {
                             color: colors.text,
-                            callback: function (value: any) {
+                            callback: function (value: number) {
                                 return '€' + value.toLocaleString('en-US', {
                                     maximumFractionDigits: 0
                                 });

@@ -166,14 +166,14 @@ export class DataProcessor {
                 // Extract YAML frontmatter if present
                 let yamlSection = '';
                 let inYaml = false;
-                let yamlStart = -1;
+
                 let yamlEnd = -1;
 
                 for (let i = 0; i < lines.length; i++) {
                     if (lines[i].trim() === '---') {
                         if (!inYaml) {
                             inYaml = true;
-                            yamlStart = i;
+
                         } else {
                             yamlEnd = i;
                             break;
@@ -367,7 +367,7 @@ export class DataProcessor {
                 entriesByMonth.set(key, []);
             }
 
-            entriesByMonth.get(key)!.push(entry);
+            entriesByMonth.get(key)?.push(entry);
         }
 
         return entriesByMonth;
@@ -386,7 +386,11 @@ export class DataProcessor {
             const year = parseInt(yearStr);
             const month = parseInt(monthStr);
 
-            const entries = entriesByMonth.get(key)!;
+            const entries = entriesByMonth.get(key);
+
+            if (!entries) {
+                continue;
+            }
 
             // Calculate total hours and invoiced amount
             let totalHours = 0;
@@ -490,7 +494,9 @@ export class DataProcessor {
 
             // Calculate month hours
             let monthHours = 0;
-            for (const entry of entriesByMonth.get(key)!) {
+            const monthEntries = entriesByMonth.get(key);
+            if (!monthEntries) continue;
+            for (const entry of monthEntries) {
                 monthHours += entry.hours;
             }
 
@@ -546,7 +552,7 @@ export class DataProcessor {
     /**
      * Makes the calculateTargetHoursForMonth method public so it can be called from the view
      */
-    public calculateTargetHoursForMonth(year: number, month: number, hoursPerDay: number = 8): number {
+    public calculateTargetHoursForMonth(year: number, month: number, hoursPerDay = 8): number {
         return this.getWorkingDaysInMonth(year, month) * hoursPerDay;
     }
 

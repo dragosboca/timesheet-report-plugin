@@ -61,7 +61,7 @@ export class ReportGeneratorModal extends Modal {
 
         // If we have available months, show a dropdown
         if (this.availableMonths.length > 0) {
-            const select = monthSetting.addDropdown(dropdown => {
+            monthSetting.addDropdown(dropdown => {
                 // Add current selection if it exists
                 const currentKey = `${this.selectedYear}-${String(this.selectedMonth).padStart(2, '0')}`;
                 let hasCurrentSelection = false;
@@ -176,7 +176,7 @@ export class ReportGeneratorModal extends Modal {
         try {
             // Show loading state
             const generateButton = this.contentEl.querySelector('.mod-cta') as HTMLButtonElement;
-            const originalText = generateButton.textContent;
+
             generateButton.textContent = 'Generating...';
             generateButton.disabled = true;
 

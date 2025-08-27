@@ -315,7 +315,7 @@ This report covers the month of **{{REPORT_PERIOD}}**.
             const filepath = `${timesheetReportsPath}/${filename}`;
 
             // Replace month/year placeholders in content
-            let finalContent = content.replace(/{{MONTH_YEAR}}/g, `${monthName} ${year}`);
+            const finalContent = content.replace(/{{MONTH_YEAR}}/g, `${monthName} ${year}`);
 
             // Check if file already exists
             const existingFile = this.plugin.app.vault.getAbstractFileByPath(filepath);

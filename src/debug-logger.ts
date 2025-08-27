@@ -2,7 +2,7 @@
 
 export class DebugLogger {
     private static instance: DebugLogger;
-    private debugEnabled: boolean = false;
+    private debugEnabled = false;
     private logElement: HTMLElement | null = null;
 
     private constructor() {
@@ -31,7 +31,7 @@ export class DebugLogger {
         return new Date().toISOString().split('T')[1].split('.')[0];
     }
 
-    public log(message: string, data?: any): void {
+    public log(message: string, data?: unknown): void {
         if (!this.debugEnabled) return;
 
         const timestamp = this.getTimestamp();

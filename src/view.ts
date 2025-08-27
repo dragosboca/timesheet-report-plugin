@@ -21,7 +21,7 @@ export class TimesheetReportView extends ItemView {
     public contentEl: HTMLElement;
     private chartRenderer: ChartRenderer;
     private dataProcessor: DataProcessor;
-    private isLoading: boolean = false;
+    private isLoading = false;
 
     constructor(leaf: WorkspaceLeaf, plugin: TimesheetReportPlugin) {
         super(leaf);
@@ -215,7 +215,7 @@ export class TimesheetReportView extends ItemView {
         }
     }
 
-    private renderSummaryCards(container: HTMLElement, data: any) {
+    private renderSummaryCards(container: HTMLElement, data: { currentYear: string | number; yearSummary: { totalHours: number; totalInvoiced: number; utilization: number; }; allTimeSummary: { totalHours: number; totalInvoiced: number; utilization: number; }; }) {
         const summaryContainer = container.createEl('div', {
             cls: 'timesheet-summary-container'
         });
@@ -283,7 +283,7 @@ export class TimesheetReportView extends ItemView {
         });
     }
 
-    private renderDataTable(container: HTMLElement, data: any) {
+    private renderDataTable(container: HTMLElement, data: { monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; utilization: number; }> }) {
         const tableContainer = container.createEl('div', {
             cls: 'timesheet-table-container'
         });
@@ -303,7 +303,7 @@ export class TimesheetReportView extends ItemView {
         // Table body
         const tbody = table.createEl('tbody');
 
-        data.monthlyData.forEach((month: any) => {
+        data.monthlyData.forEach((month) => {
             const row = tbody.createEl('tr');
 
             row.createEl('td', { text: month.label });
