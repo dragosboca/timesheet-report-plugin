@@ -12,7 +12,7 @@ echo "Building plugin..."
 npm run build
 
 # Determine the Obsidian plugins directory (relative to plugin directory)
-OBSIDIAN_VAULT_DIR="../../"
+OBSIDIAN_VAULT_DIR="/Users/dragos/Library/Mobile\ Documents/iCloud\~md\~obsidian/Documents/Siemens"
 OBSIDIAN_PLUGINS_DIR="$OBSIDIAN_VAULT_DIR/.obsidian/plugins/timesheet-report"
 
 # Create the plugins directory if it doesn't exist
