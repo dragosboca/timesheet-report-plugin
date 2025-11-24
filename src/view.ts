@@ -27,7 +27,7 @@ export class TimesheetReportView extends ItemView {
     super(leaf);
     this.plugin = plugin;
     this.dataProcessor = new DataProcessor(this.plugin);
-    this.chartRenderer = new ChartRenderer(this.plugin.settings, this.dataProcessor);
+    this.chartRenderer = new ChartRenderer(this.plugin, this.dataProcessor);
   }
 
   getViewType(): string {
@@ -82,6 +82,16 @@ export class TimesheetReportView extends ItemView {
       this.plugin.debugLogger.log('View opened');
     }
 
+    await this.renderReport();
+  }
+
+  /**
+   * Refresh the view (useful for theme changes)
+   */
+  async refresh() {
+    if (this.plugin.settings.debugMode) {
+      this.plugin.debugLogger.log('Refreshing view due to theme change');
+    }
     await this.renderReport();
   }
 

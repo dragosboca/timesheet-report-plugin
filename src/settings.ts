@@ -10,6 +10,7 @@ export interface TimesheetReportSettings {
   reportTemplateFolder: string; // Folder containing report templates
   reportOutputFolder: string;   // Where to save generated reports
   defaultReportTemplate: string; // Default template for report generation
+  useStyleSettings: boolean;    // Whether to use Style Settings for colors
   chartColors: {
     primary: string;
     secondary: string;
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: TimesheetReportSettings = {
   reportTemplateFolder: 'Templates',
   reportOutputFolder: 'Reports/Timesheet',
   defaultReportTemplate: '',
+  useStyleSettings: true,    // Default to using Style Settings if available
   chartColors: {
     primary: '#4f81bd',
     secondary: '#c0504d',
@@ -55,6 +57,10 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: TimesheetReportPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  private isStyleSettingsAvailable(): boolean {
+    return !!(this.app as any).plugins?.plugins?.['obsidian-style-settings'];
   }
 
   display(): void {
@@ -240,12 +246,42 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
         }));
 
     // Color settings section
-    new Setting(containerEl).setName('Chart Colors').setHeading();
+    new Setting(containerEl).setName('Appearance').setHeading();
+
+    // Style Settings integration
+    if (this.isStyleSettingsAvailable()) {
+      new Setting(containerEl)
+        .setName('Use Style Settings for Colors')
+        .setDesc('Use the Style Settings plugin for chart color customization. When enabled, chart colors will automatically match your theme.')
+        .addToggle(toggle => toggle
+          .setValue(this.plugin.settings.useStyleSettings)
+          .onChange(async (value) => {
+            this.plugin.settings.useStyleSettings = value;
+            await this.plugin.saveSettings();
+            this.display(); // Refresh to show/hide manual color settings
+          }));
+
+      if (this.plugin.settings.useStyleSettings) {
+        new Setting(containerEl)
+          .setName('Theme Integration Active')
+          .setDesc('Chart colors are managed by Style Settings. Open Style Settings to customize the "Timesheet Report" section.')
+          .setClass('setting-item-description');
+        return; // Don't show manual color settings
+      }
+    } else {
+      new Setting(containerEl)
+        .setName('Style Settings Not Available')
+        .setDesc('Install the Style Settings plugin for enhanced theme integration and color customization.')
+        .setClass('setting-item-description');
+    }
+
+    // Manual color settings (only shown if Style Settings is disabled or not available)
+    new Setting(containerEl).setName('Manual Color Settings').setHeading();
 
     // Primary color
     new Setting(containerEl)
       .setName('Primary Color')
-      .setDesc('Main chart color (for hours)')
+      .setDesc('Main chart color (for hours data)')
       .addText(text => text
         .setPlaceholder('#4f81bd')
         .setValue(this.plugin.settings.chartColors.primary)
@@ -268,8 +304,8 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
 
     // Tertiary color
     new Setting(containerEl)
-      .setName('Tertiary Color')
-      .setDesc('Third chart color (for invoiced amounts)')
+      .setName('Success Color')
+      .setDesc('Color for revenue and positive metrics')
       .addText(text => text
         .setPlaceholder('#9bbb59')
         .setValue(this.plugin.settings.chartColors.tertiary)
@@ -280,8 +316,8 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
 
     // Quaternary color
     new Setting(containerEl)
-      .setName('Quaternary Color')
-      .setDesc('Fourth chart color (for additional metrics)')
+      .setName('Accent Color')
+      .setDesc('Color for budget and additional data')
       .addText(text => text
         .setPlaceholder('#8064a2')
         .setValue(this.plugin.settings.chartColors.quaternary)

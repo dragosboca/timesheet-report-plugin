@@ -1,0 +1,186 @@
+/* Timesheet Report - Style Settings Examples */
+/* Copy these into your CSS snippets or Style Settings custom CSS */
+
+/* Example 1: Professional Business Theme */
+.theme-professional {
+    --timesheet-color-primary: #2c5282;
+    /* Deep blue */
+    --timesheet-color-secondary: #c53030;
+    /* Professional red */
+    --timesheet-color-tertiary: #2f855a;
+    /* Forest green */
+    --timesheet-color-quaternary: #6b46c1;
+    /* Royal purple */
+    --timesheet-summary-radius: 6px;
+    --timesheet-chart-height: 320px;
+    --timesheet-embed-spacing: 12px;
+}
+
+/* Example 2: High Contrast Theme */
+.theme-high-contrast {
+    --timesheet-color-primary: #000080;
+    /* Navy blue */
+    --timesheet-color-secondary: #cc0000;
+    /* Pure red */
+    --timesheet-color-tertiary: #006600;
+    /* Forest green */
+    --timesheet-color-quaternary: #4b0082;
+    /* Indigo */
+    --timesheet-summary-radius: 4px;
+    --timesheet-chart-height: 300px;
+    --timesheet-embed-spacing: 20px;
+}
+
+/* Example 3: Minimal Pastel Theme */
+.theme-minimal {
+    --timesheet-color-primary: #4299e1;
+    /* Sky blue */
+    --timesheet-color-secondary: #f56565;
+    /* Coral */
+    --timesheet-color-tertiary: #48bb78;
+    /* Mint green */
+    --timesheet-color-quaternary: #9f7aea;
+    /* Lavender */
+    --timesheet-summary-radius: 12px;
+    --timesheet-chart-height: 280px;
+    --timesheet-embed-spacing: 16px;
+}
+
+/* Example 4: Dark Mode Optimized */
+.theme-dark .theme-dark-optimized {
+    --timesheet-color-primary: #63b3ed;
+    /* Light blue */
+    --timesheet-color-secondary: #fc8181;
+    /* Light coral */
+    --timesheet-color-tertiary: #68d391;
+    /* Light green */
+    --timesheet-color-quaternary: #b794f6;
+    /* Light purple */
+    --timesheet-summary-radius: 8px;
+    --timesheet-chart-height: 300px;
+    --timesheet-embed-spacing: 15px;
+}
+
+/* Example 5: Corporate Brand Colors */
+.theme-corporate {
+    --timesheet-color-primary: #1a202c;
+    /* Dark gray */
+    --timesheet-color-secondary: #e53e3e;
+    /* Brand red */
+    --timesheet-color-tertiary: #38a169;
+    /* Brand green */
+    --timesheet-color-quaternary: #3182ce;
+    /* Brand blue */
+    --timesheet-summary-radius: 8px;
+    --timesheet-chart-height: 350px;
+    --timesheet-embed-spacing: 18px;
+}
+
+/* Example 6: Soft Rounded Theme */
+.theme-soft {
+    --timesheet-color-primary: #5a67d8;
+    /* Soft blue */
+    --timesheet-color-secondary: #ed8936;
+    /* Warm orange */
+    --timesheet-color-tertiary: #4fd1c7;
+    /* Aqua */
+    --timesheet-color-quaternary: #d53f8c;
+    /* Pink */
+    --timesheet-summary-radius: 16px;
+    --timesheet-chart-height: 280px;
+    --timesheet-embed-spacing: 20px;
+}
+
+/* Example 7: Monochrome Theme */
+.theme-monochrome {
+    --timesheet-color-primary: #2d3748;
+    /* Dark gray */
+    --timesheet-color-secondary: #4a5568;
+    /* Medium gray */
+    --timesheet-color-tertiary: #718096;
+    /* Light gray */
+    --timesheet-color-quaternary: #a0aec0;
+    /* Lighter gray */
+    --timesheet-summary-radius: 4px;
+    --timesheet-chart-height: 300px;
+    --timesheet-embed-spacing: 12px;
+}
+
+/* Example 8: Vibrant Theme */
+.theme-vibrant {
+    --timesheet-color-primary: #ff6b6b;
+    /* Bright red */
+    --timesheet-color-secondary: #4ecdc4;
+    /* Teal */
+    --timesheet-color-tertiary: #45b7d1;
+    /* Bright blue */
+    --timesheet-color-quaternary: #f9ca24;
+    /* Golden yellow */
+    --timesheet-summary-radius: 10px;
+    --timesheet-chart-height: 320px;
+    --timesheet-embed-spacing: 15px;
+}
+
+/* Apply themes by adding the class to your body element */
+/* Example usage in CSS snippet: */
+/*
+body.theme-professional .timesheet-report-container {
+    // Professional theme automatically applied
+}
+*/
+
+/* Color Accessibility Guidelines */
+/*
+Ensure sufficient contrast ratios:
+- Normal text: 4.5:1 minimum
+- Large text: 3:1 minimum
+- Charts: Consider colorblind users
+
+Test your colors:
+- Use tools like WebAIM Contrast Checker
+- Test with different colorblindness simulators
+- Ensure charts are readable in both light and dark modes
+*/
+
+/* Custom Animation Examples */
+.timesheet-summary-column {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timesheet-summary-column:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.timesheet-chart-container {
+    transition: box-shadow 0.3s ease;
+}
+
+.timesheet-chart-container:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Font Scaling */
+@media (max-width: 768px) {
+    :root {
+        --timesheet-chart-height: 250px;
+        --timesheet-embed-spacing: 10px;
+        --timesheet-summary-radius: 6px;
+    }
+}
+
+/* Print Styles for Reports */
+@media print {
+    .timesheet-report-container {
+        --timesheet-color-primary: #000000;
+        --timesheet-color-secondary: #666666;
+        --timesheet-color-tertiary: #333333;
+        --timesheet-color-quaternary: #999999;
+    }
+
+    .timesheet-summary-column {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+}

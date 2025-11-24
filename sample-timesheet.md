@@ -5,9 +5,9 @@ hours: 8
 worked: true
 per-hour: 60
 client:
-  - Omnisource
+  - Example Client
 work-order:
-  - Newberger-Berman
+  - Project Alpha
 ---
 
 # Work Breakdown

@@ -1,6 +1,6 @@
 // chart-renderer.ts
-import { TimesheetReportSettings } from './settings';
 import { DataProcessor } from './data-processor';
+import TimesheetReportPlugin from './main';
 
 declare global {
   interface Window {
@@ -10,11 +10,11 @@ declare global {
 
 export class ChartRenderer {
   private chartScriptLoaded = false;
-  private settings: TimesheetReportSettings;
+  private plugin: TimesheetReportPlugin;
   private dataProcessor: DataProcessor;
 
-  constructor(settings: TimesheetReportSettings, dataProcessor: DataProcessor) {
-    this.settings = settings;
+  constructor(plugin: TimesheetReportPlugin, dataProcessor: DataProcessor) {
+    this.plugin = plugin;
     this.dataProcessor = dataProcessor;
     this.ensureChartScriptLoaded();
   }
@@ -45,6 +45,26 @@ export class ChartRenderer {
     return document.body.classList.contains('theme-dark');
   }
 
+  private getCSSVariable(variable: string, fallback = ''): string {
+    return getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback;
+  }
+
+  private hexToRgba(hex: string, alpha = 1): string {
+    // Remove # if present
+    hex = hex.replace('#', '');
+
+    // Handle 3-digit hex
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   private getColorPalette(): {
     primary: string;
     secondary: string;
@@ -56,14 +76,54 @@ export class ChartRenderer {
   } {
     const isDark = this.isDarkTheme();
 
+    // Check if Style Settings integration is enabled
+    const useStyleSettings = this.plugin.settings.useStyleSettings;
+
+    let primaryColor, secondaryColor, tertiaryColor, quaternaryColor;
+
+    if (useStyleSettings) {
+      // Try to get colors from Style Settings CSS variables first, then theme variables, then fallbacks
+      primaryColor = this.getCSSVariable('--timesheet-color-primary') ||
+        this.getCSSVariable('--interactive-accent') ||
+        (isDark ? '#6496dc' : '#4f81bd');
+
+      secondaryColor = this.getCSSVariable('--timesheet-color-secondary') ||
+        this.getCSSVariable('--text-error') ||
+        (isDark ? '#dc6464' : '#c0504d');
+
+      tertiaryColor = this.getCSSVariable('--timesheet-color-tertiary') ||
+        this.getCSSVariable('--text-success') ||
+        (isDark ? '#96c864' : '#9bbb59');
+
+      quaternaryColor = this.getCSSVariable('--timesheet-color-quaternary') ||
+        this.getCSSVariable('--text-accent') ||
+        (isDark ? '#aa82be' : '#8064a2');
+    } else {
+      // Use manual settings from plugin configuration
+      primaryColor = this.plugin.settings.chartColors.primary;
+      secondaryColor = this.plugin.settings.chartColors.secondary;
+      tertiaryColor = this.plugin.settings.chartColors.tertiary;
+      quaternaryColor = this.plugin.settings.chartColors.quaternary;
+    }
+
+    // Get theme colors for grid, text, and background (always from theme)
+    const gridColor = this.getCSSVariable('--background-modifier-border') ||
+      (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)');
+
+    const textColor = this.getCSSVariable('--text-normal') ||
+      (isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)');
+
+    const backgroundColor = this.getCSSVariable('--background-primary') ||
+      (isDark ? 'rgba(30, 30, 30, 0.2)' : 'rgba(240, 240, 240, 0.2)');
+
     return {
-      primary: isDark ? 'rgba(100, 150, 220, 0.8)' : 'rgba(79, 129, 189, 0.8)',
-      secondary: isDark ? 'rgba(220, 100, 100, 0.8)' : 'rgba(192, 80, 77, 0.8)',
-      tertiary: isDark ? 'rgba(150, 200, 100, 0.8)' : 'rgba(155, 187, 89, 0.8)',
-      quaternary: isDark ? 'rgba(170, 130, 190, 0.8)' : 'rgba(128, 100, 162, 0.8)',
-      grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-      text: isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)',
-      background: isDark ? 'rgba(30, 30, 30, 0.2)' : 'rgba(240, 240, 240, 0.2)'
+      primary: this.hexToRgba(primaryColor, 0.8),
+      secondary: this.hexToRgba(secondaryColor, 0.8),
+      tertiary: this.hexToRgba(tertiaryColor, 0.8),
+      quaternary: this.hexToRgba(quaternaryColor, 0.8),
+      grid: gridColor,
+      text: textColor,
+      background: backgroundColor
     };
   }
 
@@ -258,7 +318,7 @@ export class ChartRenderer {
         return this.dataProcessor.calculateTargetHoursForMonth(
           parseInt(year),
           monthIndex,
-          this.settings.hoursPerWorkday
+          this.plugin.settings.hoursPerWorkday
         );
       });
 

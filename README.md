@@ -9,7 +9,7 @@ A comprehensive timesheet reporting plugin that generates interactive visualizat
 - **📈 Performance Metrics**: Track utilization rates, revenue, and productivity trends
 - **📝 Report Generation**: Create formatted monthly timesheet reports from customizable templates
 - **🔗 Embedded Reports**: Insert live timesheet data anywhere in your vault using query syntax
-- **🎨 Theme Integration**: Automatically adapts to Obsidian's light and dark themes
+- **🎨 Advanced Theme Integration**: Seamlessly adapts to your current theme with Style Settings plugin support
 - **⚙️ Flexible Configuration**: Support for hourly, fixed-budget, and retainer project types
 
 ## Quick Start
@@ -264,11 +264,41 @@ Create templates in your Templates folder with these placeholders:
 - **Default Template**: Template for monthly reports
 
 ### Chart Customization
-Customize colors for:
-- Primary data (hours)
-- Secondary data (utilization)
-- Budget/revenue data
-- Background elements
+- **Style Settings Integration**: If you have Style Settings plugin installed, customize all chart colors through the familiar Style Settings interface
+- **Theme-Aware Colors**: Charts automatically use your current theme's accent colors when Style Settings is enabled
+- **Manual Override**: Disable Style Settings integration to use custom color values
+- **Real-time Updates**: Color changes apply immediately without restarting Obsidian
+
+## Theme Integration
+
+### Style Settings Plugin Support
+
+For the best visual experience, install the [Style Settings plugin](obsidian://show-plugin?id=obsidian-style-settings). This enables:
+
+**Automatic Theme Integration:**
+- Chart colors automatically match your current theme
+- Seamless light/dark theme transitions
+- Colors update when you change themes
+
+**Advanced Customization:**
+1. Install Style Settings plugin
+2. Go to Settings → Style Settings
+3. Find "Timesheet Report" section
+4. Customize chart colors, interface spacing, and visual elements
+5. Changes apply instantly to all charts and embeds
+
+**Available Customizations:**
+- **Chart Colors**: Primary (hours), Secondary (utilization), Success (revenue), Accent (budget)
+- **Interface**: Summary card border radius, chart height, embed spacing
+- **Theme Variants**: Separate color schemes for light and dark themes
+
+### Manual Color Settings
+
+If you prefer manual control or don't have Style Settings:
+1. Go to Settings → Timesheet Report → Appearance
+2. Disable "Use Style Settings for Colors"
+3. Set custom hex color values
+4. Colors will remain fixed regardless of theme changes
 
 ## Advanced Features
 
@@ -291,7 +321,7 @@ For multiple projects, consider separate vaults:
 ├── Meeting Notes/
 └── Reports/
 
-📁 StartupXYZ-MVP/
+📁 Client-XYZ-MVP/
 ├── Timesheets/  
 ├── Development Notes/
 └── Budget Tracking/

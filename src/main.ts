@@ -27,6 +27,16 @@ export default class TimesheetReportPlugin extends Plugin {
 
     this.debugLogger.log('Plugin loading');
 
+    // Listen for theme changes to refresh chart colors
+    this.registerEvent(this.app.workspace.on('css-change', () => {
+      // Refresh any open timesheet views when theme changes
+      this.app.workspace.getLeavesOfType(VIEW_TYPE_TIMESHEET).forEach(leaf => {
+        if (leaf.view instanceof TimesheetReportView) {
+          leaf.view.refresh();
+        }
+      });
+    }));
+
     // Plugin loaded successfully
 
     // Register view

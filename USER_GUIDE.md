@@ -61,7 +61,7 @@ hours: 6.5
 worked: true
 per-hour: 75
 client:
-  - "Tech Corp"
+  - "Client ABC"
 work-order:
   - "Platform Development"
 ---
@@ -72,7 +72,7 @@ work-order:
 - **Hours**: 6.5
 - **Rate**: $75/hr
 - **Total**: $487.50
-- **Client**: Tech Corp
+- **Client**: Client ABC
 - **Project**: Platform Development
 
 ## Tasks Completed
@@ -133,7 +133,7 @@ hours: 8
 worked: true
 per-hour: 85
 client:
-  - "Agile Corp"
+  - "Client XYZ"
 work-order:
   - "User Profile Enhancement"
 ---
@@ -144,7 +144,7 @@ work-order:
 - **Hours**: 8
 - **Rate**: $85/hr
 - **Total**: $680
-- **Client**: Agile Corp
+- **Client**: Client XYZ
 - **Project**: User Profile Enhancement
 
 ## Tasks Completed
@@ -167,18 +167,18 @@ hours: 6
 worked: true
 per-hour: 120
 client:
-  - "TechCorp Inc"
+  - "Acme Company"
 work-order:
   - "Strategic Advisory"
 ---
 
-# TechCorp Strategic Advisory - 2024-03-15
+# Acme Company Strategic Advisory - 2024-03-15
 
 ## Work Summary
 - **Hours**: 6
 - **Rate**: $120/hr
 - **Total**: $720
-- **Client**: TechCorp Inc
+- **Client**: Acme Company
 - **Project**: Strategic Advisory
 
 ## Focus Areas
@@ -215,9 +215,9 @@ hours: 9
 worked: true
 per-hour: 95
 client:
-  - "StartupA"
-  - "CorpB" 
-  - "AgencyC"
+  - "ClientA"
+  - "ClientB" 
+  - "ClientC"
 work-order:
   - "Mobile App"
   - "API Integration"
@@ -476,14 +476,14 @@ For managing multiple clients/projects effectively:
 
 ```
 📁 Business/
-├── 📁 Client-TechCorp-Retainer/
+├── 📁 Client-ABC-Retainer/
 │   ├── .obsidian/
 │   │   └── plugins/timesheet-report/
 │   ├── Timesheets/
 │   ├── Meeting Notes/
 │   ├── Deliverables/
 │   └── Reports/
-├── 📁 Client-StartupXYZ-MVP/
+├── 📁 Client-XYZ-MVP/
 │   ├── .obsidian/
 │   ├── Timesheets/
 │   ├── Development/
@@ -510,8 +510,8 @@ For managing multiple clients/projects effectively:
 # consolidate-reports.sh
 
 declare -a vaults=(
-    "$HOME/Documents/Obsidian/Client-TechCorp-Retainer"
-    "$HOME/Documents/Obsidian/Client-StartupXYZ-MVP" 
+    "$HOME/Documents/Obsidian/Client-ABC-Retainer"
+    "$HOME/Documents/Obsidian/Client-XYZ-MVP" 
     "$HOME/Documents/Obsidian/Personal-Learning"
 )
 
@@ -545,8 +545,8 @@ from pathlib import Path
 import re
 
 vaults = [
-    Path.home() / "Documents/Obsidian/Client-TechCorp-Retainer",
-    Path.home() / "Documents/Obsidian/Client-StartupXYZ-MVP",
+    Path.home() / "Documents/Obsidian/Client-ABC-Retainer",
+    Path.home() / "Documents/Obsidian/Client-XYZ-MVP",
     Path.home() / "Documents/Obsidian/Personal-Learning"
 ]
 
@@ -605,8 +605,8 @@ const path = require('path');
 const yaml = require('js-yaml'); // npm install js-yaml
 
 const vaults = [
-    path.join(process.env.HOME, 'Documents/Obsidian/Client-TechCorp-Retainer'),
-    path.join(process.env.HOME, 'Documents/Obsidian/Client-StartupXYZ-MVP'),
+    path.join(process.env.HOME, 'Documents/Obsidian/Client-ABC-Retainer'),
+    path.join(process.env.HOME, 'Documents/Obsidian/Client-XYZ-MVP'),
     path.join(process.env.HOME, 'Documents/Obsidian/Personal-Learning')
 ];
 
@@ -694,9 +694,69 @@ CHART trend
 ```
 ```
 
-## Performance Optimization
+### Theme Integration & Style Settings
 
-### Large Dataset Management
+**Using Style Settings Plugin for Advanced Customization:**
+
+1. **Install Style Settings Plugin**:
+   - Go to Settings → Community Plugins
+   - Search for "Style Settings" and install
+   - Enable the plugin
+
+2. **Access Timesheet Report Customization**:
+   - Go to Settings → Style Settings
+   - Find "Timesheet Report" section
+   - Expand to see all customization options
+
+3. **Available Customizations**:
+   ```
+   Chart Colors:
+   ├── Primary Color (Hours) - Main data color
+   ├── Secondary Color (Utilization) - Trend lines
+   ├── Success Color (Revenue) - Positive metrics
+   └── Accent Color (Budget) - Additional data
+   
+   Interface:
+   ├── Summary Card Border Radius - 0-20px
+   ├── Default Chart Height - 200-500px
+   └── Embed Spacing - 5-30px
+   ```
+
+4. **Theme-Aware Color Schemes**:
+   ```css
+   Light Theme Example:
+   --timesheet-color-primary: #4f81bd     /* Professional blue */
+   --timesheet-color-secondary: #c0504d   /* Warning red */
+   --timesheet-color-tertiary: #9bbb59    /* Success green */
+   --timesheet-color-quaternary: #8064a2  /* Accent purple */
+   
+   Dark Theme Example:
+   --timesheet-color-primary: #6496dc     /* Bright blue */
+   --timesheet-color-secondary: #dc6464   /* Soft red */
+   --timesheet-color-tertiary: #96c864    /* Bright green */
+   --timesheet-color-quaternary: #aa82be  /* Soft purple */
+   ```
+
+5. **Creating Custom Color Schemes**:
+   - **Business Professional**: Blues and grays
+   - **High Contrast**: Strong color differences
+   - **Minimal**: Muted, subtle colors
+   - **Brand Colors**: Match your company colors
+
+**Manual Color Configuration** (without Style Settings):
+```markdown
+# Timesheet Report Settings
+Settings → Timesheet Report → Appearance
+
+1. Disable "Use Style Settings for Colors"
+2. Set manual hex colors:
+   - Primary Color: #your-brand-color
+   - Secondary Color: #accent-color
+   - Success Color: #success-color
+   - Accent Color: #additional-color
+```
+
+### Performance Optimization
 
 For vaults with extensive timesheet history:
 
@@ -718,6 +778,7 @@ For vaults with extensive timesheet history:
 - Set refresh interval to 5-10 minutes for large datasets
 - Enable debug mode only when troubleshooting
 - Use normalized folder paths in settings
+- Enable Style Settings for better theme integration
 ```
 
 ### Memory Management
@@ -769,6 +830,17 @@ if (app.plugins.plugins['timesheet-report']) {
 3. Reduce concurrent embeds per page
 4. Increase auto-refresh interval
 5. Consider vault splitting for large businesses
+6. Use Style Settings for better rendering performance
+```
+
+**Issue**: Charts don't match theme colors
+```markdown
+**Solution Steps**:
+1. Install Style Settings plugin
+2. Enable "Use Style Settings for Colors" in plugin settings
+3. Customize colors in Settings → Style Settings → Timesheet Report
+4. Colors will automatically update when theme changes
+5. For manual control, disable Style Settings integration
 ```
 
 ### Debug Mode Analysis

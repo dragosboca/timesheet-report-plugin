@@ -27,7 +27,7 @@ export class EmbedProcessor {
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
     this.dataProcessor = new DataProcessor(plugin);
-    this.chartRenderer = new ChartRenderer(plugin.settings, this.dataProcessor);
+    this.chartRenderer = new ChartRenderer(plugin, this.dataProcessor);
   }
 
   registerProcessor() {

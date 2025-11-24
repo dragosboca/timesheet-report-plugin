@@ -1,5 +1,110 @@
 /* Timesheet Report Plugin Styles */
 
+/* Style Settings Support */
+/* @settings
+
+name: Timesheet Report
+id: timesheet-report
+
+settings:
+-
+    id: colors
+    title: Chart Colors
+    type: heading
+    level: 2
+    collapsed: true
+-
+    id: timesheet-color-primary
+    title: Primary Color (Hours)
+    description: Main color for hours data in charts
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-light: '#4f81bd'
+    default-dark: '#6496dc'
+-
+    id: timesheet-color-secondary
+    title: Secondary Color (Utilization)
+    description: Color for utilization data and trends
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-light: '#c0504d'
+    default-dark: '#dc6464'
+-
+    id: timesheet-color-tertiary
+    title: Success Color (Revenue)
+    description: Color for revenue and positive metrics
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-light: '#9bbb59'
+    default-dark: '#96c864'
+-
+    id: timesheet-color-quaternary
+    title: Accent Color (Budget)
+    description: Color for budget and additional data
+    type: variable-themed-color
+    format: hex
+    opacity: false
+    default-light: '#8064a2'
+    default-dark: '#aa82be'
+-
+    id: interface
+    title: Interface
+    type: heading
+    level: 2
+    collapsed: true
+-
+    id: timesheet-summary-radius
+    title: Summary Card Border Radius
+    description: Border radius for summary cards
+    type: variable-number-slider
+    default: 8
+    min: 0
+    max: 20
+    unit: px
+-
+    id: timesheet-chart-height
+    title: Default Chart Height
+    description: Default height for charts in pixels
+    type: variable-number-slider
+    default: 300
+    min: 200
+    max: 500
+    unit: px
+-
+    id: timesheet-embed-spacing
+    title: Embed Spacing
+    description: Spacing around embedded reports
+    type: variable-number-slider
+    default: 15
+    min: 5
+    max: 30
+    unit: px
+
+*/
+
+:root {
+    /* Chart color defaults */
+    --timesheet-color-primary: #4f81bd;
+    --timesheet-color-secondary: #c0504d;
+    --timesheet-color-tertiary: #9bbb59;
+    --timesheet-color-quaternary: #8064a2;
+
+    /* Interface defaults */
+    --timesheet-summary-radius: 8px;
+    --timesheet-chart-height: 300px;
+    --timesheet-embed-spacing: 15px;
+}
+
+.theme-dark {
+    --timesheet-color-primary: #6496dc;
+    --timesheet-color-secondary: #dc6464;
+    --timesheet-color-tertiary: #96c864;
+    --timesheet-color-quaternary: #aa82be;
+}
+
 /* Main container */
 .timesheet-report-container {
     display: flex;
@@ -86,9 +191,16 @@
 /* Individual summary column */
 .timesheet-summary-column {
     padding: 15px;
-    border-radius: 8px;
+    border-radius: var(--timesheet-summary-radius);
     background-color: var(--background-secondary);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--background-modifier-border);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.timesheet-summary-column:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
 }
 
 .theme-dark .timesheet-summary-column {
@@ -133,12 +245,19 @@
 .timesheet-chart-container,
 .timesheet-monthly-chart-container {
     width: 100%;
-    height: 300px;
+    height: var(--timesheet-chart-height);
     background-color: var(--background-primary);
-    border-radius: 5px;
-    padding: 10px;
+    border-radius: var(--timesheet-summary-radius);
+    border: 1px solid var(--background-modifier-border);
+    padding: 15px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    transition: box-shadow 0.2s ease;
+}
+
+.timesheet-chart-container:hover,
+.timesheet-monthly-chart-container:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .theme-dark .timesheet-chart-container,
@@ -363,21 +482,22 @@
 
 /* Embedded timesheet styles */
 .timesheet-embed {
-    margin: 15px 0;
-    padding: 15px;
-    border-radius: 8px;
+    margin: var(--timesheet-embed-spacing) 0;
+    padding: var(--timesheet-embed-spacing);
+    border-radius: var(--timesheet-summary-radius);
     background-color: var(--background-secondary);
     border: 1px solid var(--background-modifier-border);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .timesheet-embed-compact {
-    padding: 10px;
-    margin: 10px 0;
+    padding: calc(var(--timesheet-embed-spacing) * 0.7);
+    margin: calc(var(--timesheet-embed-spacing) * 0.7) 0;
 }
 
 .timesheet-embed-detailed {
-    padding: 20px;
-    margin: 20px 0;
+    padding: calc(var(--timesheet-embed-spacing) * 1.3);
+    margin: calc(var(--timesheet-embed-spacing) * 1.3) 0;
 }
 
 .theme-dark .timesheet-embed {
@@ -440,15 +560,15 @@
 }
 
 .timesheet-chart-compact {
-    height: 200px;
+    height: calc(var(--timesheet-chart-height) * 0.7);
 }
 
 .timesheet-chart-normal {
-    height: 250px;
+    height: calc(var(--timesheet-chart-height) * 0.85);
 }
 
 .timesheet-chart-detailed {
-    height: 300px;
+    height: var(--timesheet-chart-height);
 }
 
 /* Embedded table styles */
@@ -499,10 +619,52 @@
 /* Report info section */
 .timesheet-report-info-section {
     background-color: var(--background-secondary);
-    border-radius: 5px;
+    border-radius: var(--timesheet-summary-radius);
+    border: 1px solid var(--background-modifier-border);
     padding: 15px;
     margin: 10px 0 20px 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+.timesheet-report-info-section:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Theme-aware accent colors */
+.timesheet-primary-accent {
+    color: var(--timesheet-color-primary);
+}
+
+.timesheet-secondary-accent {
+    color: var(--timesheet-color-secondary);
+}
+
+.timesheet-tertiary-accent {
+    color: var(--timesheet-color-tertiary);
+}
+
+.timesheet-quaternary-accent {
+    color: var(--timesheet-color-quaternary);
+}
+
+/* Custom scrollbars for debug sections */
+.timesheet-debug-log::-webkit-scrollbar {
+    width: 8px;
+}
+
+.timesheet-debug-log::-webkit-scrollbar-track {
+    background: var(--background-primary);
+    border-radius: 4px;
+}
+
+.timesheet-debug-log::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.timesheet-debug-log::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 .timesheet-report-info-section h3 {
