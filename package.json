@@ -1,6 +1,6 @@
 {
   "name": "timesheet-report",
-  "version": "1.0.0-rc001",
+  "version": "1.0.0",
   "description": "Obsidian plugin for generating timesheet reports",
   "main": "main.js",
   "scripts": {

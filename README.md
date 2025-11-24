@@ -4,11 +4,13 @@ This plugin generates comprehensive timesheet reports based on your timesheet da
 
 ## Features
 
-- **Summary Statistics**: View total hours, invoiced amounts, and utilization rates for the current year and all-time
+- **Summary Statistics**: View total hours, invoiced amounts, and utilization/budget progress for the current year and all-time
 - **Trend Analysis**: Track your hours and utilization over time with interactive charts
 - **Monthly Breakdown**: See detailed monthly performance with change indicators
+- **Project Budget Tracking**: Monitor fixed-hour and retainer project consumption
 - **Monthly Report Generation**: Generate formatted monthly timesheet reports based on templates
-- **Customizable Settings**: Configure your timesheet folder, currency symbol, target hours, and more
+- **Multiple Project Types**: Support for hourly, fixed-hour budget, and retainer billing models
+- **Customizable Settings**: Configure your timesheet folder, currency symbol, project type, and more
 - **Theme-Aware**: Automatically adapts to Obsidian's light and dark themes
 
 ## Usage
@@ -81,8 +83,18 @@ Generated monthly reports contain:
 ### Basic Settings
 - **Timesheet Folder**: Path to the folder containing your timesheet files
 - **Currency Symbol**: Symbol used for monetary values (€, $, etc.)
-- **Hours Per Workday**: Number of hours in your standard workday (used for utilization calculation)
+- **Hours Per Workday**: Number of hours in your standard workday (used for utilization and target hours calculation)
 - **Auto-refresh Interval**: How often to refresh the report (in minutes)
+
+### Project Configuration
+- **Project Name**: Name of the current project (displayed in reports)
+- **Project Type**: Choose between three billing models:
+  - **Hourly/Time & Materials**: Traditional hourly billing with utilization tracking
+  - **Fixed Hour Budget**: Project with a set number of allocated hours
+  - **Retainer/Block Hours**: Pre-purchased hour blocks
+- **Budget Hours**: Total hours allocated for fixed-hour or retainer projects
+- **Project Deadline**: Optional target completion date for budget tracking
+- **Default Hourly Rate**: Default rate for timesheet entries (can be overridden per entry)
 
 ### Report Generation Settings
 - **Report Template Folder**: Folder containing your report templates
@@ -117,14 +129,37 @@ Total hours worked: **{{MONTH_HOURS}}**
 *Generated on {{GENERATION_DATE}}*
 ```
 
+## Project Types & Features
+
+### Hourly/Time & Materials Projects
+- Track actual hours worked vs. potential capacity
+- Utilization metrics based on working days calculation
+- "Potential Additional" revenue visualization
+- Traditional freelance billing model
+
+### Fixed-Hour Budget Projects
+- Set a total hour budget for the entire project
+- Track cumulative hours consumed vs. budget
+- Visual budget burn-down charts
+- Progress tracking with remaining hours display
+- Ideal for fixed-scope contracts
+
+### Retainer/Block Hour Projects
+- Manage pre-purchased hour blocks
+- Track consumption against purchased hours
+- Budget remaining visualization
+- Perfect for ongoing client relationships
+
 ## Dynamic Target Hours Calculation
 
-The plugin now dynamically calculates target hours based on working days in each month rather than using a fixed value:
+For hourly projects, the plugin dynamically calculates target hours based on working days:
 
 - Automatically counts workdays (Monday-Friday) in each month
 - Multiplies by your configured hours per workday
 - Shows a breakdown of the calculation in the report
-- Provides more accurate utilization metrics that account for varying month lengths
+- Provides accurate utilization metrics that account for varying month lengths and holidays
+
+For budget projects, tracking focuses on cumulative consumption against allocated hours rather than monthly targets.
 
 ## Commands
 
@@ -152,22 +187,7 @@ npm run dev
 
 MIT
 
-## Settings
 
-- **Timesheet Folder**: Path to the folder containing your timesheet files
-- **Currency Symbol**: Symbol used for monetary values (€, $, etc.)
-- **Hours Per Workday**: Number of hours in your standard workday (used for utilization calculation)
-- **Auto-refresh Interval**: How often to refresh the report (in minutes)
-- **Chart Colors**: Customize the colors used in charts
-
-## Dynamic Target Hours Calculation
-
-The plugin now dynamically calculates target hours based on working days in each month rather than using a fixed value:
-
-- Automatically counts workdays (Monday-Friday) in each month
-- Multiplies by your configured hours per workday
-- Shows a breakdown of the calculation in the report
-- Provides more accurate utilization metrics that account for varying month lengths
 
 ## Development
 

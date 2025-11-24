@@ -202,7 +202,7 @@ export class ChartRenderer {
     });
   }
 
-  async renderMonthlyChart(container: HTMLElement, monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; }>): Promise<void> {
+  async renderMonthlyChart(container: HTMLElement, monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }>): Promise<void> {
     await this.ensureChartScriptLoaded();
 
     const colors = this.getColorPalette();
@@ -219,47 +219,76 @@ export class ChartRenderer {
     canvas.height = 300;
     container.appendChild(canvas);
 
+    // Check if this is a budget-tracked project
+    const isBudgetProject = recentData.some(item => item.budgetHours !== undefined);
+
     // Extract data for chart
     const labels = recentData.map(item => item.label);
     const invoiced = recentData.map(item => item.invoiced);
 
-    // Calculate total working hours for each month and potential additional using average hourly rate
-    const totalWorkingHours = recentData.map(item => {
-      // Calculate total working hours in the month using proper calculation method
-      const [monthName, year] = item.label.split(' ');
-      const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth() + 1; // getMonth() returns 0-based, we need 1-based
+    let datasets: any[];
 
-      return this.dataProcessor.calculateTargetHoursForMonth(
-        parseInt(year),
-        monthIndex,
-        this.settings.hoursPerWorkday
-      );
-    });
+    if (isBudgetProject) {
+      // For budget projects, show budget consumption instead of potential additional
+      const budgetUsed = recentData.map(item => (item.budgetUsed || 0) * (item.rate || 0));
+      const budgetRemaining = recentData.map(item => (item.budgetRemaining || 0) * (item.rate || 0));
 
-    const maxPossibleInvoice = recentData.map((item, index) => totalWorkingHours[index] * item.rate);
-    const uninvoiced = maxPossibleInvoice.map((max, index) => Math.max(0, max - invoiced[index]));
+      datasets = [
+        {
+          label: 'Budget Used',
+          data: budgetUsed,
+          backgroundColor: colors.primary,
+          borderColor: colors.primary.replace('0.8', '1.0'),
+          borderWidth: 1
+        },
+        {
+          label: 'Budget Remaining',
+          data: budgetRemaining,
+          backgroundColor: colors.tertiary,
+          borderColor: colors.tertiary.replace('0.8', '1.0'),
+          borderWidth: 1
+        }
+      ];
+    } else {
+      // For hourly projects, show potential additional revenue
+      const totalWorkingHours = recentData.map(item => {
+        const [monthName, year] = item.label.split(' ');
+        const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
+
+        return this.dataProcessor.calculateTargetHoursForMonth(
+          parseInt(year),
+          monthIndex,
+          this.settings.hoursPerWorkday
+        );
+      });
+
+      const maxPossibleInvoice = recentData.map((item, index) => totalWorkingHours[index] * item.rate);
+      const uninvoiced = maxPossibleInvoice.map((max, index) => Math.max(0, max - invoiced[index]));
+
+      datasets = [
+        {
+          label: 'Invoiced',
+          data: invoiced,
+          backgroundColor: colors.primary,
+          borderColor: colors.primary.replace('0.8', '1.0'),
+          borderWidth: 1
+        },
+        {
+          label: 'Potential Additional',
+          data: uninvoiced,
+          backgroundColor: colors.secondary,
+          borderColor: colors.secondary.replace('0.8', '1.0'),
+          borderWidth: 1
+        }
+      ];
+    }
 
     // Create chart
     new (window.Chart as any)(canvas, {
       type: 'bar',
       data: {
         labels: labels,
-        datasets: [
-          {
-            label: 'Invoiced',
-            data: invoiced,
-            backgroundColor: colors.primary,
-            borderColor: colors.primary.replace('0.8', '1.0'),
-            borderWidth: 1
-          },
-          {
-            label: 'Potential Additional',
-            data: uninvoiced,
-            backgroundColor: colors.secondary,
-            borderColor: colors.secondary.replace('0.8', '1.0'),
-            borderWidth: 1
-          }
-        ]
+        datasets: datasets
       },
       options: {
         responsive: true,
@@ -298,7 +327,7 @@ export class ChartRenderer {
         plugins: {
           title: {
             display: true,
-            text: 'Monthly Invoice Analysis',
+            text: isBudgetProject ? 'Monthly Budget Analysis' : 'Monthly Invoice Analysis',
             color: colors.text,
             font: {
               size: 16
@@ -318,7 +347,12 @@ export class ChartRenderer {
                 const index = tooltipItems[0].dataIndex;
                 const monthData = recentData[index];
                 const days = Math.round(monthData.hours / 8 * 10) / 10; // Assuming 8 hours per day
-                return `${monthData.label}\n${monthData.hours.toFixed(1)} hours • ${days.toFixed(1)} days`;
+
+                if (isBudgetProject && monthData.budgetProgress !== undefined) {
+                  return `${monthData.label}\n${monthData.hours.toFixed(1)} hours • ${(monthData.budgetProgress * 100).toFixed(1)}% complete`;
+                } else {
+                  return `${monthData.label}\n${monthData.hours.toFixed(1)} hours • ${days.toFixed(1)} days`;
+                }
               },
               label: function (context: any) {
                 let label = context.dataset.label || '';
@@ -332,11 +366,20 @@ export class ChartRenderer {
               },
               footer: function (tooltipItems: any[]) {
                 const index = tooltipItems[0].dataIndex;
-                const total = invoiced[index] + uninvoiced[index];
-                return [
-                  `Worked: €${invoiced[index].toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                  `Total Potential: €${total.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-                ];
+                const monthData = recentData[index];
+
+                if (isBudgetProject && monthData.budgetHours !== undefined) {
+                  return [
+                    `Hours Used: ${monthData.budgetUsed || 0}/${monthData.budgetHours}`,
+                    `Budget Remaining: ${monthData.budgetRemaining || 0} hours`
+                  ];
+                } else {
+                  const total = invoiced[index] + (datasets[1]?.data[index] || 0);
+                  return [
+                    `Worked: €${invoiced[index].toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
+                    `Total Potential: €${total.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+                  ];
+                }
               }
             }
           }

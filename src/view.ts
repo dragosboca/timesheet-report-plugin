@@ -207,75 +207,101 @@ export class TimesheetReportView extends ItemView {
     }
   }
 
-  private renderSummaryCards(container: HTMLElement, data: { currentYear: string | number; yearSummary: { totalHours: number; totalInvoiced: number; utilization: number; }; allTimeSummary: { totalHours: number; totalInvoiced: number; utilization: number; }; }) {
+  private renderSummaryCards(container: HTMLElement, data: { currentYear: string | number; yearSummary: { totalHours: number; totalInvoiced: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }; allTimeSummary: { totalHours: number; totalInvoiced: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }; }) {
     const summaryContainer = container.createEl('div', {
       cls: 'timesheet-summary-container'
     });
 
-    // Current year summary
-    const currentYearSummary = summaryContainer.createEl('div', {
-      cls: 'timesheet-summary-card'
+    // Title
+    summaryContainer.createEl('h2', { text: 'Summary' });
+
+    // Two-column layout
+    const summaryGrid = summaryContainer.createEl('div', {
+      cls: 'timesheet-summary-grid'
     });
 
-    currentYearSummary.createEl('h3', {
-      text: `${data.currentYear} Summary`
+    // Current Year Column
+    const currentYearColumn = summaryGrid.createEl('div', {
+      cls: 'timesheet-summary-column'
     });
 
-    const currentYearStats = currentYearSummary.createEl('div', {
-      cls: 'timesheet-summary-stats'
+    currentYearColumn.createEl('h3', {
+      text: `${data.currentYear}`
     });
 
-    currentYearStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Hours' },
-      text: this.formatNumber(data.yearSummary.totalHours)
+    const currentYearTable = currentYearColumn.createEl('table', {
+      cls: 'timesheet-summary-table'
     });
 
-    currentYearStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Invoiced' },
-      text: `€${this.formatNumber(data.yearSummary.totalInvoiced)}`
+    const currentYearBody = currentYearTable.createEl('tbody');
+
+    // Hours row
+    const hoursRow = currentYearBody.createEl('tr');
+    hoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
+    hoursRow.createEl('td', { text: this.formatNumber(data.yearSummary.totalHours), cls: 'summary-value' });
+
+    // Invoiced row
+    const invoicedRow = currentYearBody.createEl('tr');
+    invoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
+    invoicedRow.createEl('td', { text: `€${this.formatNumber(data.yearSummary.totalInvoiced)}`, cls: 'summary-value' });
+
+    // Budget or Utilization row
+    if (data.yearSummary.budgetHours !== undefined) {
+      const progressRow = currentYearBody.createEl('tr');
+      progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
+      progressRow.createEl('td', { text: `${Math.round((data.yearSummary.budgetProgress || 0) * 100)}%`, cls: 'summary-value' });
+
+      const remainingRow = currentYearBody.createEl('tr');
+      remainingRow.createEl('td', { text: 'Remaining', cls: 'summary-label' });
+      remainingRow.createEl('td', { text: `${this.formatNumber(data.yearSummary.budgetRemaining || 0)}h`, cls: 'summary-value' });
+    } else {
+      const utilizationRow = currentYearBody.createEl('tr');
+      utilizationRow.createEl('td', { text: 'Utilization', cls: 'summary-label' });
+      utilizationRow.createEl('td', { text: `${Math.round(data.yearSummary.utilization * 100)}%`, cls: 'summary-value' });
+    }
+
+    // All Time Column
+    const allTimeColumn = summaryGrid.createEl('div', {
+      cls: 'timesheet-summary-column'
     });
 
-    currentYearStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Utilization' },
-      text: `${Math.round(data.yearSummary.utilization * 100)}%`
+    allTimeColumn.createEl('h3', {
+      text: 'All Time'
     });
 
-    // All-time summary
-    const allTimeSummary = summaryContainer.createEl('div', {
-      cls: 'timesheet-summary-card'
+    const allTimeTable = allTimeColumn.createEl('table', {
+      cls: 'timesheet-summary-table'
     });
 
-    allTimeSummary.createEl('h3', {
-      text: 'All-Time Summary'
-    });
+    const allTimeBody = allTimeTable.createEl('tbody');
 
-    const allTimeStats = allTimeSummary.createEl('div', {
-      cls: 'timesheet-summary-stats'
-    });
+    // Hours row
+    const allTimeHoursRow = allTimeBody.createEl('tr');
+    allTimeHoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
+    allTimeHoursRow.createEl('td', { text: this.formatNumber(data.allTimeSummary.totalHours), cls: 'summary-value' });
 
-    allTimeStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Hours' },
-      text: this.formatNumber(data.allTimeSummary.totalHours)
-    });
+    // Invoiced row
+    const allTimeInvoicedRow = allTimeBody.createEl('tr');
+    allTimeInvoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
+    allTimeInvoicedRow.createEl('td', { text: `€${this.formatNumber(data.allTimeSummary.totalInvoiced)}`, cls: 'summary-value' });
 
-    allTimeStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Invoiced' },
-      text: `€${this.formatNumber(data.allTimeSummary.totalInvoiced)}`
-    });
+    // Budget or Utilization row
+    if (data.allTimeSummary.budgetHours !== undefined) {
+      const progressRow = allTimeBody.createEl('tr');
+      progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
+      progressRow.createEl('td', { text: `${Math.round((data.allTimeSummary.budgetProgress || 0) * 100)}%`, cls: 'summary-value' });
 
-    allTimeStats.createEl('div', {
-      cls: 'timesheet-stat',
-      attr: { 'data-label': 'Utilization' },
-      text: `${Math.round(data.allTimeSummary.utilization * 100)}%`
-    });
+      const remainingRow = allTimeBody.createEl('tr');
+      remainingRow.createEl('td', { text: 'Remaining', cls: 'summary-label' });
+      remainingRow.createEl('td', { text: `${this.formatNumber(data.allTimeSummary.budgetRemaining || 0)}h`, cls: 'summary-value' });
+    } else {
+      const utilizationRow = allTimeBody.createEl('tr');
+      utilizationRow.createEl('td', { text: 'Utilization', cls: 'summary-label' });
+      utilizationRow.createEl('td', { text: `${Math.round(data.allTimeSummary.utilization * 100)}%`, cls: 'summary-value' });
+    }
   }
 
-  private renderDataTable(container: HTMLElement, data: { monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; utilization: number; }> }) {
+  private renderDataTable(container: HTMLElement, data: { monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }> }) {
     const tableContainer = container.createEl('div', {
       cls: 'timesheet-table-container'
     });
@@ -284,13 +310,22 @@ export class TimesheetReportView extends ItemView {
       cls: 'timesheet-data-table'
     });
 
+    // Check if this is a budget project
+    const isBudgetProject = data.monthlyData.some(month => month.budgetHours !== undefined);
+
     // Table header
     const thead = table.createEl('thead');
     const headerRow = thead.createEl('tr');
 
-    ['Period', 'Hours', 'Invoiced', 'Rate', 'Utilization'].forEach(header => {
-      headerRow.createEl('th', { text: header });
-    });
+    if (isBudgetProject) {
+      ['Period', 'Hours', 'Invoiced', 'Rate', 'Progress', 'Remaining'].forEach(header => {
+        headerRow.createEl('th', { text: header });
+      });
+    } else {
+      ['Period', 'Hours', 'Invoiced', 'Rate', 'Utilization'].forEach(header => {
+        headerRow.createEl('th', { text: header });
+      });
+    }
 
     // Table body
     const tbody = table.createEl('tbody');
@@ -302,7 +337,13 @@ export class TimesheetReportView extends ItemView {
       row.createEl('td', { text: this.formatNumber(month.hours) });
       row.createEl('td', { text: `€${this.formatNumber(month.invoiced)}` });
       row.createEl('td', { text: `€${this.formatNumber(month.rate)}` });
-      row.createEl('td', { text: `${Math.round(month.utilization * 100)}%` });
+
+      if (isBudgetProject && month.budgetProgress !== undefined) {
+        row.createEl('td', { text: `${Math.round(month.budgetProgress * 100)}%` });
+        row.createEl('td', { text: this.formatNumber(month.budgetRemaining || 0) });
+      } else {
+        row.createEl('td', { text: `${Math.round(month.utilization * 100)}%` });
+      }
     });
   }
 
