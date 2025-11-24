@@ -22,6 +22,39 @@ This plugin generates comprehensive timesheet reports based on your timesheet da
 3. The plugin will analyze all timesheet files in your designated folder
 4. View your timesheet statistics in a dedicated view
 
+### Embedding Reports
+
+You can embed timesheet reports directly in your notes using a Dataview-style query syntax:
+
+```timesheet
+WHERE year = 2024
+SHOW summary, chart
+VIEW summary
+```
+
+#### Embedding Examples:
+
+**Quick summary in daily notes:**
+```timesheet
+PERIOD current-year
+VIEW summary
+SIZE compact
+```
+
+**Detailed project dashboard:**
+```timesheet
+WHERE year = 2024
+VIEW full
+SIZE detailed
+```
+
+**Budget tracking for fixed-hour projects:**
+```timesheet
+CHART budget
+VIEW chart
+SIZE normal
+```
+
 ### Generating Monthly Reports
 
 1. Click the "Generate Monthly Report" button in the timesheet report view, or
@@ -160,6 +193,80 @@ For hourly projects, the plugin dynamically calculates target hours based on wor
 - Provides accurate utilization metrics that account for varying month lengths and holidays
 
 For budget projects, tracking focuses on cumulative consumption against allocated hours rather than monthly targets.
+
+## Embedding Query Syntax
+
+The plugin supports embedding timesheet reports using a SQL-like query syntax within `timesheet` code blocks.
+
+### Query Structure
+
+```timesheet
+WHERE <conditions>
+SHOW <components>
+VIEW <display_type>
+CHART <chart_type>
+PERIOD <time_period>
+SIZE <size_option>
+```
+
+### Query Options
+
+#### WHERE Conditions
+- `WHERE year = 2024` - Filter by specific year
+- `WHERE month = 3` - Filter by specific month (1-12)
+- `WHERE project = "Client ABC"` - Filter by project name
+- `WHERE date BETWEEN "2024-01-01" AND "2024-03-31"` - Filter by date range
+
+#### VIEW Types
+- `VIEW summary` - Show summary cards only
+- `VIEW chart` - Show chart only
+- `VIEW table` - Show data table only
+- `VIEW full` - Show all components
+
+#### CHART Types
+- `CHART trend` - Hours and utilization trend over time
+- `CHART monthly` - Monthly invoice/budget analysis
+- `CHART budget` - Budget consumption tracking
+
+#### PERIOD Options
+- `PERIOD current-year` - Current year data only
+- `PERIOD all-time` - All historical data
+- `PERIOD last-6-months` - Last 6 months
+- `PERIOD last-12-months` - Last 12 months
+
+#### SIZE Options
+- `SIZE compact` - Minimal space usage
+- `SIZE normal` - Standard display
+- `SIZE detailed` - Full information
+
+### Example Queries
+
+#### Project Dashboard
+```timesheet
+WHERE year = 2024
+VIEW full
+SIZE detailed
+```
+
+#### Quick Status Check
+```timesheet
+PERIOD current-year
+VIEW summary
+SIZE compact
+```
+
+#### Budget Monitoring
+```timesheet
+WHERE year = 2024
+VIEW chart
+CHART budget
+```
+
+#### Monthly Performance
+```timesheet
+PERIOD last-6-months
+VIEW table
+```
 
 ## Commands
 

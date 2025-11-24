@@ -1,13 +1,15 @@
 import { Plugin } from 'obsidian';
 import { TimesheetReportView, VIEW_TYPE_TIMESHEET } from './view';
-import { DEFAULT_SETTINGS, TimesheetReportSettings, TimesheetReportSettingTab } from './settings';
+import { TimesheetReportSettings, DEFAULT_SETTINGS, TimesheetReportSettingTab } from './settings';
 import { DebugLogger } from './debug-logger';
 import { ReportGenerator } from './report-generator';
+import { EmbedProcessor } from './embed-processor';
 
 export default class TimesheetReportPlugin extends Plugin {
   settings: TimesheetReportSettings;
   debugLogger: DebugLogger;
   reportGenerator: ReportGenerator;
+  embedProcessor: EmbedProcessor;
 
   async onload() {
     await this.loadSettings();
@@ -18,6 +20,10 @@ export default class TimesheetReportPlugin extends Plugin {
 
     // Initialize report generator
     this.reportGenerator = new ReportGenerator(this);
+
+    // Initialize embed processor
+    this.embedProcessor = new EmbedProcessor(this);
+    this.embedProcessor.registerProcessor();
 
     this.debugLogger.log('Plugin loading');
 

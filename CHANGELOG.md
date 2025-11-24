@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-XX
 
 ### Added
+- **Embedded Timesheet Reports**: New code block processor for embedding reports in any note
+  - **Dataview-style Query Syntax**: SQL-like query language for filtering and displaying data
+  - **Flexible Embedding Options**: Support for summary, chart, table, or full views
+  - **Multiple Display Sizes**: Compact, normal, and detailed size options
+  - **Advanced Filtering**: Filter by year, month, project, or date ranges
+  - **Period Selection**: Current year, all-time, last N months options
+  - **Chart Type Selection**: Trend, monthly, or budget chart types
+  - **Responsive Design**: Adapts to different container sizes and screen widths
 - **Project Configuration System**: New per-vault project settings for different billing models
   - **Hourly/Time & Materials**: Traditional hourly billing with utilization tracking
   - **Fixed-Hour Budget**: Projects with allocated hour budgets and consumption tracking

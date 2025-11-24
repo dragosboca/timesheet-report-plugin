@@ -220,3 +220,190 @@ worked: true
 **Q: Can I change project type mid-project?**
 - A: Yes, but historical data interpretation may change
 - A: Consider creating a new vault if billing model fundamentally changes
+
+---
+
+## Embedding Examples
+
+The plugin supports embedding timesheet reports directly in your notes using a Dataview-style query syntax. Here are practical examples for different use cases:
+
+### Daily Note Integration
+
+**Quick status check in daily notes:**
+```timesheet
+PERIOD current-year
+VIEW summary
+SIZE compact
+```
+
+This provides a minimal summary that fits nicely in daily notes without taking up too much space.
+
+**Current month progress:**
+```timesheet
+WHERE year = 2024 AND month = 3
+VIEW summary
+SIZE normal
+```
+
+### Project Dashboard Pages
+
+**Complete project overview:**
+```timesheet
+WHERE year = 2024
+VIEW full
+SIZE detailed
+```
+
+This shows everything: summary, charts, and data table with full detail.
+
+**Budget tracking for fixed-hour projects:**
+```timesheet
+WHERE year = 2024
+VIEW chart
+CHART budget
+SIZE normal
+```
+
+Perfect for monitoring budget consumption in project status pages.
+
+### Client Reports & Presentations
+
+**Professional quarterly summary:**
+```timesheet
+WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
+VIEW summary
+SIZE detailed
+```
+
+**Visual progress tracking:**
+```timesheet
+PERIOD last-6-months
+VIEW chart
+CHART trend
+```
+
+### Weekly/Monthly Reviews
+
+**Recent performance table:**
+```timesheet
+PERIOD last-6-months
+VIEW table
+SIZE normal
+```
+
+**Compact monthly overview:**
+```timesheet
+PERIOD current-year
+VIEW summary
+SIZE compact
+```
+
+### Specific Project Analysis
+
+**Single month deep dive:**
+```timesheet
+WHERE year = 2024 AND month = 2
+VIEW full
+```
+
+**Year-to-date summary:**
+```timesheet
+WHERE year = 2024
+VIEW summary
+SIZE detailed
+```
+
+### Template Integration
+
+**Project Status Template:**
+```markdown
+# {{project_name}} - Weekly Status
+
+## Current Progress
+```timesheet
+WHERE year = 2024
+VIEW summary
+SIZE normal
+```
+
+## Budget Tracking
+```timesheet
+CHART budget
+VIEW chart
+```
+
+## Recent Activity
+```timesheet
+PERIOD last-6-months
+VIEW table
+SIZE compact
+```
+```
+
+**Client Dashboard Template:**
+```markdown
+# Client ABC - Project Dashboard
+
+## Executive Summary
+```timesheet
+PERIOD current-year
+VIEW summary
+SIZE detailed
+```
+
+## Performance Trends
+```timesheet
+PERIOD all-time
+VIEW chart
+CHART trend
+```
+```
+
+### Advanced Query Examples
+
+**Complex filtering:**
+```timesheet
+WHERE year = 2024 AND project = "Client XYZ"
+VIEW full
+SIZE detailed
+```
+
+**Multi-month analysis:**
+```timesheet
+WHERE date BETWEEN "2023-10-01" AND "2024-03-31"
+VIEW chart
+CHART monthly
+```
+
+**Compact dashboard widgets:**
+```timesheet
+// Current year summary
+PERIOD current-year
+VIEW summary
+SIZE compact
+```
+
+### Best Practices for Embedding
+
+1. **Use SIZE compact** for dashboard widgets and daily notes
+2. **Use SIZE detailed** for comprehensive project reports
+3. **Use specific WHERE clauses** to focus on relevant data
+4. **Combine multiple embeds** for different perspectives on the same page
+5. **Use comments** (// prefix) to document complex queries
+
+### Common Use Cases by Role
+
+#### For Project Managers:
+- Embed budget tracking in project status pages
+- Use trend charts in weekly team updates
+- Include compact summaries in meeting notes
+
+#### For Freelancers:
+- Daily note widgets for quick status checks
+- Client dashboard pages with multiple views
+- Invoice preparation with detailed tables
+
+#### For Teams:
+- Shared project dashboards with real-time data
+- Performance tracking across multiple periods
+- Resource allocation planning with utilization data

@@ -361,6 +361,141 @@
     overflow-x: auto;
 }
 
+/* Embedded timesheet styles */
+.timesheet-embed {
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.timesheet-embed-compact {
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.timesheet-embed-detailed {
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.theme-dark .timesheet-embed {
+    background-color: var(--background-secondary);
+    border-color: var(--background-modifier-border);
+}
+
+/* Embedded component titles */
+.timesheet-embed-title {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-accent);
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding-bottom: 5px;
+}
+
+.timesheet-embed-compact .timesheet-embed-title {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+/* Embedded summary styles */
+.timesheet-embed-summary {
+    margin-bottom: 15px;
+}
+
+.timesheet-embed-summary .timesheet-summary-grid {
+    gap: 15px;
+    max-width: none;
+    margin: 0;
+}
+
+.timesheet-embed-compact .timesheet-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.timesheet-embed-summary .timesheet-summary-column {
+    padding: 12px;
+    background-color: var(--background-primary);
+}
+
+.timesheet-embed-compact .timesheet-summary-column {
+    padding: 8px;
+}
+
+.timesheet-embed-summary .timesheet-summary-column h5 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    text-align: center;
+    color: var(--text-accent);
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding-bottom: 4px;
+}
+
+/* Embedded chart styles */
+.timesheet-embed-chart {
+    margin-bottom: 15px;
+}
+
+.timesheet-chart-compact {
+    height: 200px;
+}
+
+.timesheet-chart-normal {
+    height: 250px;
+}
+
+.timesheet-chart-detailed {
+    height: 300px;
+}
+
+/* Embedded table styles */
+.timesheet-embed-table {
+    margin-bottom: 10px;
+}
+
+.timesheet-embed-data-table {
+    font-size: 13px;
+}
+
+.timesheet-embed-data-table th,
+.timesheet-embed-data-table td {
+    padding: 6px 8px;
+}
+
+.timesheet-embed-compact .timesheet-embed-data-table {
+    font-size: 12px;
+}
+
+.timesheet-embed-compact .timesheet-embed-data-table th,
+.timesheet-embed-compact .timesheet-embed-data-table td {
+    padding: 4px 6px;
+}
+
+/* Embedded error styles */
+.timesheet-embed-error {
+    color: var(--text-error);
+    padding: 10px;
+    border-left: 3px solid var(--text-error);
+    background-color: var(--background-modifier-error);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* Responsive adjustments for embeds */
+@media (max-width: 600px) {
+    .timesheet-embed-summary .timesheet-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .timesheet-embed {
+        padding: 10px;
+        margin: 10px 0;
+    }
+}
+
 /* Report info section */
 .timesheet-report-info-section {
     background-color: var(--background-secondary);
