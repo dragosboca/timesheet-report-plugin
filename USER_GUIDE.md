@@ -20,35 +20,34 @@ For projects with multiple clients and varying rates:
 
 ```md
 ---
-tags: [Daily, Billable]
+tags: [Daily]
 hours: 8.5
 worked: true
+per-hour: 85
 client:
   - "Client A"
-  - "Client B"
 work-order:
   - "Website Redesign"
-  - "API Development"
-project-phase: "Phase 2 - Implementation"
 ---
 
 # Multi-Client Work Day - 2024-03-15
 
-## Client A - Website Redesign (5.5 hours @ $85/hr)
-| Task | Hours | Rate | Notes |
-|------|-------|------|-------|
-| UI Design | 3.0 | 85 | Header redesign |
-| Client Review | 1.5 | 85 | Feedback session |
-| Revisions | 1.0 | 85 | Layout adjustments |
+## Work Summary
+- **Hours**: 8.5
+- **Rate**: $85/hr
+- **Total**: $722.50
+- **Client**: Client A
+- **Project**: Website Redesign
 
-## Client B - API Development (3.0 hours @ $95/hr)
-| Task | Hours | Rate | Notes |
-|------|-------|------|-------|
-| Endpoint Development | 2.0 | 95 | User authentication |
-| Testing | 1.0 | 95 | Unit tests |
+## Tasks Completed
+- UI Design (3 hours)
+- Client Review (1.5 hours) 
+- Revisions (1 hour)
+- API Development (2 hours)
+- Testing (1 hour)
 
-**Total Invoiced**: $702.50
-**Utilization**: 106% (8.5/8 hours)
+## Notes
+Multiple tasks across different project areas. Good productivity day with client feedback incorporated.
 ```
 
 ### Time Tracking with Breaks
@@ -58,34 +57,32 @@ Detailed time tracking including non-billable time:
 ```md
 ---
 tags: [Daily]
-hours: 6.5  # Billable hours only
-total-time: 9.0  # Including breaks and admin
+hours: 6.5
 worked: true
 per-hour: 75
-efficiency: 72  # 6.5/9.0 * 100
+client:
+  - "Tech Corp"
+work-order:
+  - "Platform Development"
 ---
 
-# Detailed Time Log - 2024-03-15
+# Platform Development - 2024-03-15
 
-## Time Breakdown
-- **9:00-10:30**: Client work (1.5h)
-- **10:30-10:45**: Break (0.25h) ❌
-- **10:45-12:00**: Development (1.25h)
-- **12:00-13:00**: Lunch (1h) ❌
-- **13:00-15:00**: Meetings (2h)
-- **15:00-15:15**: Break (0.25h) ❌
-- **15:15-17:00**: Documentation (1.75h)
+## Work Summary
+- **Hours**: 6.5
+- **Rate**: $75/hr
+- **Total**: $487.50
+- **Client**: Tech Corp
+- **Project**: Platform Development
 
-## Billable Summary
-| Activity | Hours | Rate | Amount |
-|----------|-------|------|--------|
-| Client Work | 1.5 | 75 | $112.50 |
-| Development | 1.25 | 75 | $93.75 |
-| Meetings | 2.0 | 75 | $150.00 |
-| Documentation | 1.75 | 75 | $131.25 |
-| **Total** | **6.5** | **75** | **$487.50** |
+## Tasks Completed
+- Client consultation and requirements review
+- Backend development and API endpoints
+- Team meetings and project coordination
+- Technical documentation updates
 
-**Efficiency**: 72% (6.5 billable / 9.0 total hours)
+## Notes
+Productive day with good progress on platform features. Client meeting went well with positive feedback on current direction.
 ```
 
 ### Project Milestone Tracking
@@ -94,37 +91,33 @@ For budget projects with milestone tracking:
 
 ```md
 ---
-tags: [Daily, Milestone]
+tags: [Daily]
 hours: 7
 worked: true
 per-hour: 90
-milestone: "MVP Beta Release"
-milestone-progress: 85
-budget-consumed: 67.5  # Hours used so far
-budget-total: 120
-deadline: "2024-04-30"
+client:
+  - "Startup XYZ"
+work-order:
+  - "MVP Development"
 ---
 
 # MVP Development - Sprint 3 Final - 2024-03-15
 
-## Milestone: MVP Beta Release (85% Complete)
+## Work Summary
+- **Hours**: 7
+- **Rate**: $90/hr
+- **Total**: $630
+- **Client**: Startup XYZ
+- **Project**: MVP Development
 
-### Today's Accomplishments
-- ✅ User authentication flow
-- ✅ Database migration scripts
-- ✅ API endpoint testing
-- 🔄 UI Polish (in progress)
+## Today's Accomplishments
+- User authentication flow implementation
+- Database migration scripts
+- API endpoint testing
+- UI Polish and refinements
 
-### Budget Status
-- **Used**: 67.5 / 120 hours (56.25%)
-- **Remaining**: 52.5 hours
-- **Days to Deadline**: 46 days
-- **Required Pace**: 1.14 hours/day
-
-### Risk Assessment
-- **On Track**: Current pace sustainable
-- **Quality**: High, thorough testing
-- **Scope**: Minor features may be deferred
+## Notes
+Sprint 3 final day - good progress on MVP features. Authentication system is working well and testing is showing positive results.
 ```
 
 ## Project Workflow Examples
@@ -135,39 +128,32 @@ deadline: "2024-04-30"
 
 ```md
 ---
-tags: [Sprint, Planning]
+tags: [Daily]
 hours: 8
 worked: true
 per-hour: 85
-sprint: "Sprint 15"
-sprint-goal: "User Profile Enhancement"
-story-points: 13
-velocity-target: 25
+client:
+  - "Agile Corp"
+work-order:
+  - "User Profile Enhancement"
 ---
 
-# Sprint 15 - Day 3 - 2024-03-15
+# User Profile Enhancement - 2024-03-15
 
-## Sprint Goal: User Profile Enhancement
+## Work Summary
+- **Hours**: 8
+- **Rate**: $85/hr
+- **Total**: $680
+- **Client**: Agile Corp
+- **Project**: User Profile Enhancement
 
-### Completed Stories
-- [x] **US-234**: Profile photo upload (5 pts) - 3.5 hours
-- [x] **US-235**: Email preferences (3 pts) - 2.0 hours
+## Tasks Completed
+- Profile photo upload functionality
+- Email preferences system
+- Privacy settings implementation (partial)
 
-### In Progress
-- [🔄] **US-236**: Privacy settings (5 pts) - 2.5 hours (ongoing)
-
-### Sprint Metrics
-- **Points Completed**: 8/13 (62%)
-- **Hours Logged**: 8.0
-- **Velocity**: On track for 25 points
-- **Burndown**: Slightly ahead of schedule
-
-### Blockers & Risks
-- None currently
-
-### Tomorrow's Plan
-- Complete US-236 privacy settings
-- Begin US-237 notification preferences
+## Notes
+Good progress on user profile features. Photo upload is working well, email preferences are complete. Privacy settings need another 2-3 hours tomorrow.
 ```
 
 ### Client Consulting Workflow
@@ -176,46 +162,46 @@ velocity-target: 25
 
 ```md
 ---
-tags: [Consulting, Retainer]
+tags: [Consulting]
 hours: 6
 worked: true
 per-hour: 120
-client: ["TechCorp Inc"]
-retainer-month: "March 2024"
-retainer-used: 18.5  # Hours used this month
-retainer-total: 40   # Monthly allocation
-engagement-type: "Strategic Advisory"
+client:
+  - "TechCorp Inc"
+work-order:
+  - "Strategic Advisory"
 ---
 
-# TechCorp Strategic Advisory - Week 2 - 2024-03-15
+# TechCorp Strategic Advisory - 2024-03-15
 
-## Retainer Status (March 2024)
-- **Used**: 18.5 / 40 hours (46.25%)
-- **Remaining**: 21.5 hours
-- **Weeks Left**: 2.5
-- **Recommended Pace**: 8.6 hours/week
+## Work Summary
+- **Hours**: 6
+- **Rate**: $120/hr
+- **Total**: $720
+- **Client**: TechCorp Inc
+- **Project**: Strategic Advisory
 
-## This Week's Focus Areas
+## Focus Areas
 
-### 1. Technology Architecture Review (3.5 hours)
+### Technology Architecture Review
 - Evaluated current microservices setup
-- Identified scalability bottlenecks
+- Identified scalability bottlenecks  
 - Proposed migration to event-driven architecture
 
-### 2. Team Process Optimization (2.5 hours)
+### Team Process Optimization
 - Facilitated Agile retrospective
 - Implemented new CI/CD pipeline
 - Coached team leads on sprint planning
 
 ## Deliverables
-- ✅ Architecture assessment document
-- ✅ Process improvement roadmap
-- 🔄 Technology stack recommendations (draft)
+- Architecture assessment document
+- Process improvement roadmap
+- Technology stack recommendations (draft)
 
-## Next Week's Priorities
-1. Finalize technology recommendations
-2. Budget planning for Q2 initiatives
-3. Team training session on new processes
+## Next Steps
+- Finalize technology recommendations
+- Budget planning for Q2 initiatives
+- Team training session on new processes
 ```
 
 ### Freelance Business Workflow
@@ -224,45 +210,39 @@ engagement-type: "Strategic Advisory"
 
 ```md
 ---
-tags: [Freelance, Multi-Client]
+tags: [Daily]
 hours: 9
 worked: true
-context-switches: 4
-focus-time: 7.5  # Deep work hours
-admin-time: 1.5  # Non-billable admin
+per-hour: 95
+client:
+  - "StartupA"
+  - "CorpB" 
+  - "AgencyC"
+work-order:
+  - "Mobile App"
+  - "API Integration"
+  - "Website Maintenance"
 ---
 
 # Multi-Client Freelance Day - 2024-03-15
 
-## Client Distribution
-| Client | Hours | Rate | Amount | Project |
-|--------|-------|------|--------|---------|
-| StartupA | 4.0 | 95 | $380 | Mobile App |
-| CorpB | 3.0 | 110 | $330 | API Integration |
-| AgencyC | 2.0 | 85 | $170 | Website Maintenance |
-| **Total** | **9.0** | **97.8** | **$880** | |
+## Work Summary
+- **Total Hours**: 9
+- **Average Rate**: $95/hr
+- **Total Revenue**: $855
+- **Clients**: 3 different projects
 
-## Context Switching Analysis
-- **Switches**: 4 (optimal: ≤3)
-- **Avg Session**: 2.25 hours
-- **Focus Quality**: Good (minimal interruptions)
+## Project Breakdown
+- **Mobile App Development** (4 hours): Core feature implementation
+- **API Integration** (3 hours): Backend service connections  
+- **Website Maintenance** (2 hours): Updates and bug fixes
 
-## Administrative Tasks (1.5 hours - Non-billable)
-- Invoice generation and sending
-- New client onboarding call
-- Portfolio website updates
-- Expense tracking
-
-## Daily Metrics
-- **Revenue**: $880
-- **Utilization**: 100% (9/9 planned hours)
-- **Efficiency**: 83% (7.5 focus / 9 total)
-- **Admin Overhead**: 14.3% (1.5/10.5 total time)
+## Notes
+Productive multi-client day with good progress across all projects. Mobile app features are coming together well, API integration is on schedule, and website maintenance completed successfully.
 
 ## Tomorrow's Plan
-- Focus day: Single client (StartupA)
-- Deep work: 6 hours continuous
-- Target: Feature completion milestone
+- Focus on single client (StartupA) for deeper work session
+- Target: Complete remaining mobile app features
 ```
 
 ## Advanced Embedding Techniques
