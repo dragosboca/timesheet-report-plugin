@@ -12,17 +12,17 @@ echo "Building plugin..."
 npm run build
 
 # Determine the Obsidian plugins directory (relative to plugin directory)
-OBSIDIAN_VAULT_DIR="/Users/dragos/Library/Mobile\ Documents/iCloud\~md\~obsidian/Documents/Siemens"
-OBSIDIAN_PLUGINS_DIR="$OBSIDIAN_VAULT_DIR/.obsidian/plugins/timesheet-report"
+OBSIDIAN_VAULT_DIR="/Users/dragos/Library/Mobile Documents/iCloud~md~obsidian/Documents/Siemens"
+OBSIDIAN_PLUGINS_DIR="${OBSIDIAN_VAULT_DIR}/.obsidian/plugins/timesheet-report"
 
 # Create the plugins directory if it doesn't exist
-mkdir -p "$OBSIDIAN_PLUGINS_DIR"
+mkdir -p "${OBSIDIAN_PLUGINS_DIR}"
 
 # Copy the files to the plugins directory
-echo "Installing plugin to $OBSIDIAN_PLUGINS_DIR..."
-cp "$PLUGIN_DIR/main.js" "$OBSIDIAN_PLUGINS_DIR/"
-cp "$PLUGIN_DIR/manifest.json" "$OBSIDIAN_PLUGINS_DIR/"
-cp "$PLUGIN_DIR/styles.css" "$OBSIDIAN_PLUGINS_DIR/"
+echo "Installing plugin to ${OBSIDIAN_PLUGINS_DIR}..."
+cp "${PLUGIN_DIR}/main.js" "${OBSIDIAN_PLUGINS_DIR}/"
+cp "${PLUGIN_DIR}/manifest.json" "${OBSIDIAN_PLUGINS_DIR}/"
+cp "${PLUGIN_DIR}/styles.css" "${OBSIDIAN_PLUGINS_DIR}/"
 
 echo "Plugin installed successfully!"
 echo "Please restart Obsidian or reload the plugin to apply changes."

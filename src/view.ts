@@ -26,8 +26,8 @@ export class TimesheetReportView extends ItemView {
   constructor(leaf: WorkspaceLeaf, plugin: TimesheetReportPlugin) {
     super(leaf);
     this.plugin = plugin;
-    this.chartRenderer = new ChartRenderer();
     this.dataProcessor = new DataProcessor(this.plugin);
+    this.chartRenderer = new ChartRenderer(this.plugin.settings, this.dataProcessor);
   }
 
   getViewType(): string {

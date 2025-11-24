@@ -1,0 +1,10 @@
+{
+  "id": "timesheet-report",
+  "name": "Timesheet Report",
+  "version": "1.0.0-rc001",
+  "minAppVersion": "0.15.0",
+  "description": "Generates comprehensive timesheet reports from timesheet data",
+  "author": "Dragos",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}
