@@ -503,31 +503,164 @@ For managing multiple clients/projects effectively:
 
 ### Cross-Vault Reporting
 
-PowerShell script for consolidating reports across vaults:
+**Bash script** for consolidating reports across vaults:
 
-```powershell
-# consolidate-reports.ps1
-$vaults = @(
-    "C:\Obsidian\Client-TechCorp-Retainer",
-    "C:\Obsidian\Client-StartupXYZ-MVP",
-    "C:\Obsidian\Personal-Learning"
+```bash
+#!/bin/bash
+# consolidate-reports.sh
+
+declare -a vaults=(
+    "$HOME/Documents/Obsidian/Client-TechCorp-Retainer"
+    "$HOME/Documents/Obsidian/Client-StartupXYZ-MVP" 
+    "$HOME/Documents/Obsidian/Personal-Learning"
 )
 
-$consolidatedData = @()
+output_file="consolidated-timesheet-data.csv"
+echo "Date,Hours,Rate,Client,Project,Vault" > "$output_file"
 
-foreach ($vault in $vaults) {
-    $timesheetPath = Join-Path $vault "Timesheets"
-    $files = Get-ChildItem -Path $timesheetPath -Filter "*.md"
+for vault in "${vaults[@]}"; do
+    timesheet_path="$vault/Timesheets"
+    if [[ -d "$timesheet_path" ]]; then
+        find "$timesheet_path" -name "*.md" | while read -r file; do
+            # Extract YAML frontmatter and append to CSV
+            vault_name=$(basename "$vault")
+            echo "Processing: $file -> $vault_name"
+        done
+    fi
+done
+
+echo "Consolidated data saved to: $output_file"
+```
+
+**Python script** for advanced analysis:
+
+```python
+#!/usr/bin/env python3
+# consolidate_reports.py
+
+import os
+import yaml
+import csv
+from pathlib import Path
+import re
+
+vaults = [
+    Path.home() / "Documents/Obsidian/Client-TechCorp-Retainer",
+    Path.home() / "Documents/Obsidian/Client-StartupXYZ-MVP",
+    Path.home() / "Documents/Obsidian/Personal-Learning"
+]
+
+def extract_yaml_frontmatter(file_path):
+    """Extract YAML frontmatter from markdown file"""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
     
-    foreach ($file in $files) {
-        # Extract timesheet data and add to consolidated array
-        # Process YAML frontmatter and calculate metrics
+    # Find YAML frontmatter
+    match = re.match(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
+    if match:
+        try:
+            return yaml.safe_load(match.group(1))
+        except yaml.YAMLError:
+            return {}
+    return {}
+
+consolidated_data = []
+
+for vault in vaults:
+    timesheet_path = vault / "Timesheets"
+    if timesheet_path.exists():
+        for file_path in timesheet_path.glob("*.md"):
+            frontmatter = extract_yaml_frontmatter(file_path)
+            
+            if frontmatter.get('hours'):
+                consolidated_data.append({
+                    'date': file_path.stem,
+                    'hours': frontmatter.get('hours', 0),
+                    'rate': frontmatter.get('per-hour', 0),
+                    'client': frontmatter.get('client', ['Unknown'])[0],
+                    'project': frontmatter.get('work-order', ['Unknown'])[0],
+                    'vault': vault.name
+                })
+
+# Export to CSV
+with open('consolidated-timesheet-data.csv', 'w', newline='') as csvfile:
+    fieldnames = ['date', 'hours', 'rate', 'client', 'project', 'vault']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    
+    writer.writeheader()
+    for row in consolidated_data:
+        writer.writerow(row)
+
+print(f"Consolidated {len(consolidated_data)} timesheet entries")
+```
+
+**Node.js script** for JavaScript/TypeScript users:
+
+```javascript
+#!/usr/bin/env node
+// consolidate-reports.js
+
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml'); // npm install js-yaml
+
+const vaults = [
+    path.join(process.env.HOME, 'Documents/Obsidian/Client-TechCorp-Retainer'),
+    path.join(process.env.HOME, 'Documents/Obsidian/Client-StartupXYZ-MVP'),
+    path.join(process.env.HOME, 'Documents/Obsidian/Personal-Learning')
+];
+
+function extractYamlFrontmatter(filePath) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+    
+    if (match) {
+        try {
+            return yaml.load(match[1]);
+        } catch (e) {
+            return {};
+        }
     }
+    return {};
 }
 
-# Generate consolidated dashboard
-# Export to CSV for external analysis
-# Create summary report
+const consolidatedData = [];
+
+vaults.forEach(vault => {
+    const timesheetPath = path.join(vault, 'Timesheets');
+    
+    if (fs.existsSync(timesheetPath)) {
+        const files = fs.readdirSync(timesheetPath)
+            .filter(file => file.endsWith('.md'));
+        
+        files.forEach(file => {
+            const filePath = path.join(timesheetPath, file);
+            const frontmatter = extractYamlFrontmatter(filePath);
+            
+            if (frontmatter.hours) {
+                consolidatedData.push({
+                    date: path.parse(file).name,
+                    hours: frontmatter.hours || 0,
+                    rate: frontmatter['per-hour'] || 0,
+                    client: frontmatter.client ? frontmatter.client[0] : 'Unknown',
+                    project: frontmatter['work-order'] ? frontmatter['work-order'][0] : 'Unknown',
+                    vault: path.basename(vault)
+                });
+            }
+        });
+    }
+});
+
+// Export to CSV
+const csvContent = [
+    'Date,Hours,Rate,Client,Project,Vault',
+    ...consolidatedData.map(row => 
+        `${row.date},${row.hours},${row.rate},${row.client},${row.project},${row.vault}`
+    )
+].join('\n');
+
+fs.writeFileSync('consolidated-timesheet-data.csv', csvContent);
+console.log(`Consolidated ${consolidatedData.length} timesheet entries`);
 ```
 
 ### Project Templates
