@@ -1,159 +1,240 @@
 # Timesheet Report Plugin for Obsidian
 
-This plugin generates comprehensive timesheet reports based on your timesheet data stored in Obsidian. It provides visualizations of hours worked, invoiced amounts, and utilization metrics across different time periods.
+A comprehensive timesheet reporting plugin that generates interactive visualizations, tracks project budgets, and creates detailed reports from your timesheet data stored in Obsidian.
 
 ## Features
 
-- **Summary Statistics**: View total hours, invoiced amounts, and utilization/budget progress for the current year and all-time
-- **Trend Analysis**: Track your hours and utilization over time with interactive charts
-- **Monthly Breakdown**: See detailed monthly performance with change indicators
-- **Project Budget Tracking**: Monitor fixed-hour and retainer project consumption
-- **Monthly Report Generation**: Generate formatted monthly timesheet reports based on templates
-- **Multiple Project Types**: Support for hourly, fixed-hour budget, and retainer billing models
-- **Customizable Settings**: Configure your timesheet folder, currency symbol, project type, and more
-- **Theme-Aware**: Automatically adapts to Obsidian's light and dark themes
+- **📊 Interactive Charts**: Visualize your work patterns with trend analysis and monthly breakdowns
+- **💰 Budget Tracking**: Monitor fixed-hour projects, retainers, and hourly work with progress indicators
+- **📈 Performance Metrics**: Track utilization rates, revenue, and productivity trends
+- **📝 Report Generation**: Create formatted monthly timesheet reports from customizable templates
+- **🔗 Embedded Reports**: Insert live timesheet data anywhere in your vault using query syntax
+- **🎨 Theme Integration**: Automatically adapts to Obsidian's light and dark themes
+- **⚙️ Flexible Configuration**: Support for hourly, fixed-budget, and retainer project types
 
-## Usage
+## Quick Start
 
-### Viewing Reports
+### Installation
 
-1. Install the plugin
-2. Access the report by clicking the calendar-clock icon in the ribbon or using the command palette
-3. The plugin will analyze all timesheet files in your designated folder
-4. View your timesheet statistics in a dedicated view
+1. Open Obsidian Settings → Community Plugins
+2. Disable Safe Mode if enabled
+3. Browse and search for "Timesheet Report"
+4. Install and enable the plugin
 
-### Embedding Reports
+### Basic Setup
 
-You can embed timesheet reports directly in your notes using a Dataview-style query syntax:
+1. **Configure Settings**: Go to Settings → Timesheet Report
+   - Set your timesheet folder path (default: `Timesheets`)
+   - Choose your currency symbol
+   - Set hours per workday for utilization calculations
 
-```timesheet
-WHERE year = 2024
-SHOW summary, chart
-VIEW summary
+2. **Create Timesheet Files**: Add markdown files to your timesheet folder with this format:
+
+```md
+---
+tags: [Daily]
+hours: 8
+worked: true
+per-hour: 75
+client: [Client Name]
+work-order: [Project Name]
+---
+
+# Daily Work Log
+
+## Tasks Completed
+- Feature development
+- Client meeting
+- Code review
 ```
 
-#### Embedding Examples:
+3. **View Reports**: Click the calendar-clock icon in the ribbon or use "Open Timesheet Report" from the command palette
 
-**Quick summary in daily notes:**
+## Timesheet File Format
+
+### Required Elements
+
+Your timesheet files need:
+- **Date**: Either in filename (YYYY-MM-DD.md) or YAML frontmatter
+- **Hours**: Total hours worked that day
+- **Rate**: Hourly billing rate (optional, uses project default if not specified)
+
+### YAML Frontmatter Options
+
+```yaml
+---
+hours: 8          # Total hours worked
+worked: true      # Whether work was performed (default: true)
+per-hour: 75      # Hourly rate
+client:           # Client name(s)
+  - ClientName
+work-order:       # Project/work order
+  - ProjectName
+---
+```
+
+### Alternative: Table Format
+
+You can also use tables for detailed breakdowns:
+
+```md
+| Task | Hours | Rate | Notes |
+|------|-------|------|-------|
+| Development | 4.0 | 75 | New features |
+| Meetings | 2.0 | 75 | Client calls |
+| Testing | 2.0 | 75 | QA review |
+```
+
+## Project Types & Configuration
+
+### 1. Hourly/Time & Materials Projects
+
+**Best for**: Traditional consulting, ongoing maintenance, open-ended work
+
+**Configuration**:
+- Project Type: "Hourly/Time & Materials" 
+- Set default hourly rate
+- Configure hours per workday for utilization tracking
+
+**What you get**:
+- Utilization percentage based on working capacity
+- "Potential Additional" revenue calculations
+- Month-over-month efficiency analysis
+
+### 2. Fixed-Hour Budget Projects
+
+**Best for**: Fixed-scope projects, MVPs, specific deliverables
+
+**Configuration**:
+- Project Type: "Fixed Hour Budget"
+- Set total budget hours (e.g., 120 hours)
+- Optional project deadline
+
+**What you get**:
+- Budget consumption tracking (e.g., "67/120 hours used")
+- Progress percentage and remaining hours
+- Budget burn-down charts and pace indicators
+
+### 3. Retainer/Block Hours Projects
+
+**Best for**: Monthly retainers, pre-purchased hour blocks, ongoing relationships
+
+**Configuration**:
+- Project Type: "Retainer/Block Hours"
+- Set hours per block/month (e.g., 40 hours)
+- Track consumption against purchased hours
+
+**What you get**:
+- Block hour usage and remaining balance
+- Consumption efficiency tracking
+- Monthly/period reset capabilities
+
+## Embedding Reports in Notes
+
+Embed live timesheet reports anywhere in your vault using a SQL-like query syntax:
+
+### Basic Examples
+
+**Quick summary in daily notes**:
 ```timesheet
 PERIOD current-year
 VIEW summary
 SIZE compact
 ```
 
-**Detailed project dashboard:**
+**Project dashboard with full details**:
 ```timesheet
 WHERE year = 2024
 VIEW full
 SIZE detailed
 ```
 
-**Budget tracking for fixed-hour projects:**
+**Budget tracking chart**:
 ```timesheet
 CHART budget
 VIEW chart
 SIZE normal
 ```
 
-### Generating Monthly Reports
+### Query Syntax Reference
 
-1. Click the "Generate Monthly Report" button in the timesheet report view, or
-2. Use the command palette and search for "Generate Monthly Timesheet Report"
-3. Select the month/year and optionally choose a template
-4. The report will be saved to your configured Reports/Timesheet folder
+#### WHERE Clauses (Filters)
+- `WHERE year = 2024` - Filter by year
+- `WHERE month = 3` - Filter by month (1-12)
+- `WHERE project = "Client ABC"` - Filter by project
+- `WHERE date BETWEEN "2024-01-01" AND "2024-03-31"` - Date range
 
-## Timesheet File Format
+#### VIEW Types
+- `VIEW summary` - Key metrics cards
+- `VIEW chart` - Visual charts only  
+- `VIEW table` - Data table only
+- `VIEW full` - Everything (summary + chart + table)
 
-The plugin expects timesheet files to be Markdown files with YAML frontmatter containing:
+#### CHART Types
+- `CHART trend` - Hours and utilization over time
+- `CHART monthly` - Monthly revenue/budget analysis
+- `CHART budget` - Budget consumption (fixed-hour projects)
 
-- **hours**: Number of hours worked
-- **worked**: Boolean indicating if work was performed (defaults to true)
-- **per-hour**: Hourly rate (optional)
-- **client**: Client name (optional)
-- **work-order**: Work order or project description (optional)
+#### PERIOD Options
+- `PERIOD current-year` - Current year data
+- `PERIOD all-time` - All historical data
+- `PERIOD last-6-months` - Recent 6 months
+- `PERIOD last-12-months` - Recent 12 months
 
-Example timesheet file (`2023-04-15.md`):
+#### SIZE Options
+- `SIZE compact` - Minimal space for widgets
+- `SIZE normal` - Standard display
+- `SIZE detailed` - Full information
 
-```md
----
-tags:
-  - Daily
-hours: 8
-worked: true
-per-hour: 60
-client:
-  - Omnisource  
-work-order:
-  - Newberger-Berman
----
+### Advanced Embedding
 
-# Meetings
-```dataview
-LIST
-FROM "Meeting Notes"
-WHERE meeting-date = date(2023-04-15)
+**Monthly review template**:
+```markdown
+# March 2024 Review
+
+## Performance Summary
+```timesheet
+WHERE year = 2024 AND month = 3
+VIEW summary
+SIZE detailed
 ```
 
-# Work Orders
-## Newberger Berman
-
-[Details of work performed]
+## Budget Progress  
+```timesheet
+CHART budget
+VIEW chart
 ```
 
-## Monthly Report Format
+## Detailed Breakdown
+```timesheet
+WHERE year = 2024 AND month = 3
+VIEW table
+```
+```
 
-Generated monthly reports contain:
+## Report Generation
 
-- **Date**: Each day of the month
-- **Hours**: Hours worked (empty for non-work days)
-- **Task Description**: 
-  - "N/A" for weekends (Saturday/Sunday)
-  - "PTO" for weekdays with 0 hours worked
-  - Work order/client name for days with recorded hours
+### Creating Monthly Reports
 
-## Settings
+1. Click "Generate Monthly Report" in the timesheet view, or
+2. Use Command Palette → "Generate Monthly Timesheet Report"
+3. Select month/year and optional template
+4. Report saves to `Reports/Timesheet/` folder
 
-### Basic Settings
-- **Timesheet Folder**: Path to the folder containing your timesheet files
-- **Currency Symbol**: Symbol used for monetary values (€, $, etc.)
-- **Hours Per Workday**: Number of hours in your standard workday (used for utilization and target hours calculation)
-- **Auto-refresh Interval**: How often to refresh the report (in minutes)
+### Custom Templates
 
-### Project Configuration
-- **Project Name**: Name of the current project (displayed in reports)
-- **Project Type**: Choose between three billing models:
-  - **Hourly/Time & Materials**: Traditional hourly billing with utilization tracking
-  - **Fixed Hour Budget**: Project with a set number of allocated hours
-  - **Retainer/Block Hours**: Pre-purchased hour blocks
-- **Budget Hours**: Total hours allocated for fixed-hour or retainer projects
-- **Project Deadline**: Optional target completion date for budget tracking
-- **Default Hourly Rate**: Default rate for timesheet entries (can be overridden per entry)
+Create templates in your Templates folder with these placeholders:
 
-### Report Generation Settings
-- **Report Template Folder**: Folder containing your report templates
-- **Report Output Folder**: Where generated reports are saved
-- **Default Report Template**: Default template for report generation
+- `{{MONTH_YEAR}}` - Report period (e.g., "March 2024")
+- `{{MONTH_HOURS}}` - Total hours worked
+- `{{TABLE_PLACEHOLDER}}` - Detailed timesheet table
+- `{{GENERATION_DATE}}` - Report creation date
 
-### Chart Colors
-- Customize the colors used in charts and visualizations
+**Example template**:
+```markdown
+# Monthly Report - {{MONTH_YEAR}}
 
-## Report Templates
-
-You can create custom templates in the Templates folder. Templates support these placeholders:
-
-- `{{MONTH_YEAR}}`: Replaced with the month and year (e.g., "January 2024")
-- `{{REPORT_PERIOD}}`: Same as MONTH_YEAR - the reporting period (e.g., "January 2024")
-- `{{MONTH_HOURS}}`: Total hours worked in the month (e.g., "160")
-- `{{TABLE_PLACEHOLDER}}`: Replaced with the timesheet table
-- `{{GENERATION_DATE}}`: Replaced with the date the report was generated
-
-Example template:
-```md
-# Monthly Timesheet Report - {{MONTH_YEAR}}
-
-## Summary
-This report covers **{{REPORT_PERIOD}}**.
-Total hours worked: **{{MONTH_HOURS}}**
+**Total Hours**: {{MONTH_HOURS}}
 
 ## Timesheet Details
 {{TABLE_PLACEHOLDER}}
@@ -162,157 +243,147 @@ Total hours worked: **{{MONTH_HOURS}}**
 *Generated on {{GENERATION_DATE}}*
 ```
 
-## Project Types & Features
+## Settings Reference
 
-### Hourly/Time & Materials Projects
-- Track actual hours worked vs. potential capacity
-- Utilization metrics based on working days calculation
-- "Potential Additional" revenue visualization
-- Traditional freelance billing model
+### Basic Settings
+- **Timesheet Folder**: Where your timesheet files are stored
+- **Currency Symbol**: Display currency (€, $, £, etc.)
+- **Hours Per Workday**: Standard working hours (for utilization calculations)
+- **Auto-refresh**: How often to update the report (minutes)
 
-### Fixed-Hour Budget Projects
-- Set a total hour budget for the entire project
-- Track cumulative hours consumed vs. budget
-- Visual budget burn-down charts
-- Progress tracking with remaining hours display
-- Ideal for fixed-scope contracts
+### Project Configuration
+- **Project Name**: Display name for current project
+- **Project Type**: Hourly, Fixed-Hour Budget, or Retainer
+- **Budget Hours**: Total hours (for budget/retainer projects)
+- **Default Rate**: Fallback hourly rate
+- **Project Deadline**: Optional target date
 
-### Retainer/Block Hour Projects
-- Manage pre-purchased hour blocks
-- Track consumption against purchased hours
-- Budget remaining visualization
-- Perfect for ongoing client relationships
+### Report Settings
+- **Template Folder**: Location of report templates
+- **Output Folder**: Where generated reports are saved
+- **Default Template**: Template for monthly reports
 
-## Dynamic Target Hours Calculation
+### Chart Customization
+Customize colors for:
+- Primary data (hours)
+- Secondary data (utilization)
+- Budget/revenue data
+- Background elements
 
-For hourly projects, the plugin dynamically calculates target hours based on working days:
+## Advanced Features
 
-- Automatically counts workdays (Monday-Friday) in each month
-- Multiplies by your configured hours per workday
-- Shows a breakdown of the calculation in the report
-- Provides accurate utilization metrics that account for varying month lengths and holidays
+### Dynamic Target Hours
 
-For budget projects, tracking focuses on cumulative consumption against allocated hours rather than monthly targets.
+For hourly projects, the plugin automatically calculates monthly targets by:
+1. Counting working days (Monday-Friday) in each month
+2. Multiplying by your "Hours Per Workday" setting
+3. Adjusting for holidays and varying month lengths
 
-## Embedding Query Syntax
+Example: May 2024 with 23 working days × 8 hours = 184 target hours
 
-The plugin supports embedding timesheet reports using a SQL-like query syntax within `timesheet` code blocks.
+### Multi-Vault Workflows
 
-### Query Structure
+For multiple projects, consider separate vaults:
 
-```timesheet
-WHERE <conditions>
-SHOW <components>
-VIEW <display_type>
-CHART <chart_type>
-PERIOD <time_period>
-SIZE <size_option>
+```
+📁 Client-ABC-Retainer/
+├── Timesheets/
+├── Meeting Notes/
+└── Reports/
+
+📁 StartupXYZ-MVP/
+├── Timesheets/  
+├── Development Notes/
+└── Budget Tracking/
 ```
 
-### Query Options
+Benefits:
+- Independent project settings
+- Client-specific privacy
+- Separate billing and reporting
+- Tailored templates per project
 
-#### WHERE Conditions
-- `WHERE year = 2024` - Filter by specific year
-- `WHERE month = 3` - Filter by specific month (1-12)
-- `WHERE project = "Client ABC"` - Filter by project name
-- `WHERE date BETWEEN "2024-01-01" AND "2024-03-31"` - Filter by date range
+### Performance Optimization
 
-#### VIEW Types
-- `VIEW summary` - Show summary cards only
-- `VIEW chart` - Show chart only
-- `VIEW table` - Show data table only
-- `VIEW full` - Show all components
+- **Filter embedded reports** when possible to improve speed
+- **Use compact size** for frequently-viewed pages
+- **Limit concurrent embeds** on the same page
+- **Archive old timesheet files** to dedicated folders
 
-#### CHART Types
-- `CHART trend` - Hours and utilization trend over time
-- `CHART monthly` - Monthly invoice/budget analysis
-- `CHART budget` - Budget consumption tracking
+## Troubleshooting
 
-#### PERIOD Options
-- `PERIOD current-year` - Current year data only
-- `PERIOD all-time` - All historical data
-- `PERIOD last-6-months` - Last 6 months
-- `PERIOD last-12-months` - Last 12 months
+### Common Issues
 
-#### SIZE Options
-- `SIZE compact` - Minimal space usage
-- `SIZE normal` - Standard display
-- `SIZE detailed` - Full information
+**No data showing in reports**:
+- Check timesheet folder path in settings
+- Verify timesheet files have proper YAML frontmatter
+- Ensure dates are in YYYY-MM-DD format
 
-### Example Queries
+**Incorrect calculations**:
+- Verify `hours` field in timesheet files
+- Check `per-hour` rates are set correctly
+- Confirm `worked: true` for active work days
 
-#### Project Dashboard
-```timesheet
-WHERE year = 2024
-VIEW full
-SIZE detailed
+**Charts not displaying**:
+- Ensure you have timesheet data for the selected period
+- Check browser console for JavaScript errors
+- Try refreshing the view
+
+**Budget tracking not visible**:
+- Set Project Type to "Fixed Hour Budget" or "Retainer"
+- Configure Budget Hours with a value > 0
+- Verify timesheet files include project hours
+
+**Embedding syntax errors**:
+- Check query syntax for typos
+- Ensure proper capitalization (WHERE, VIEW, etc.)
+- Verify filter conditions match your data
+
+### Debug Mode
+
+Enable debug mode in settings for detailed logging:
+- File processing information
+- Data calculation steps  
+- Error details and suggestions
+
+## Development & Customization
+
+### File Structure
+```
+src/
+├── main.ts              # Plugin entry point
+├── view.ts              # Main report view
+├── settings.ts          # Configuration UI
+├── data-processor.ts    # Data processing logic
+├── chart-renderer.ts    # Chart visualization
+├── report-generator.ts  # Report creation
+└── embed-processor.ts   # Embedding system
 ```
 
-#### Quick Status Check
-```timesheet
-PERIOD current-year
-VIEW summary
-SIZE compact
-```
-
-#### Budget Monitoring
-```timesheet
-WHERE year = 2024
-VIEW chart
-CHART budget
-```
-
-#### Monthly Performance
-```timesheet
-PERIOD last-6-months
-VIEW table
-```
-
-## Commands
-
-- **Open Timesheet Report**: Opens the main timesheet report view
-- **Generate Monthly Timesheet Report**: Opens the monthly report generator modal
-
-## Development
-
-This plugin is built with TypeScript and uses Chart.js for visualizations.
-
-### Building
-
+### Building from Source
 ```bash
-# Install dependencies
+git clone [repository-url]
+cd timesheet-report-plugin
 npm install
-
-# Build
 npm run build
-
-# Development with hot-reload
-npm run dev
 ```
+
+### Contributing
+
+Contributions welcome! See `CONTRIBUTING.md` for guidelines.
 
 ## License
 
-MIT
+MIT License - see `LICENSE` file for details.
 
+## Support
 
+- **Issues**: GitHub repository issues
+- **Documentation**: See `USER_GUIDE.md` for detailed usage
+- **Community**: Obsidian Discord #plugin-dev channel
 
-## Development
+---
 
-This plugin is built with TypeScript and uses Chart.js for visualizations.
+**Made with ❤️ for the Obsidian community**
 
-### Building
-
-```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Development with hot-reload
-npm run dev
-```
-
-## License
-
-MIT
+Transform your timesheet data into actionable insights with visual reports, budget tracking, and seamless integration into your knowledge management workflow.

@@ -2,9 +2,8 @@
   "id": "timesheet-report",
   "name": "Timesheet Report",
   "version": "1.0.0",
-  "minAppVersion": "0.15.0",
-  "description": "Generates comprehensive timesheet reports from timesheet data",
+  "minAppVersion": "1.0.0",
+  "description": "Generate comprehensive timesheet reports with interactive charts, budget tracking, and monthly summaries from your Obsidian timesheet data",
   "author": "Dragos",
-  "authorUrl": "",
   "isDesktopOnly": false
 }

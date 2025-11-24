@@ -61,8 +61,6 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Timesheet Report Settings' });
-
     // Timesheet folder path
     new Setting(containerEl)
       .setName('Timesheet Folder')
@@ -129,7 +127,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
         }));
 
     // Project Configuration section
-    containerEl.createEl('h3', { text: 'Project Configuration' });
+    new Setting(containerEl).setName('Project Configuration').setHeading();
 
     // Project name
     new Setting(containerEl)
@@ -203,7 +201,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
         }));
 
     // Report Generation section
-    containerEl.createEl('h3', { text: 'Report Generation Settings' });
+    new Setting(containerEl).setName('Report Generation').setHeading();
 
     // Report template folder
     new Setting(containerEl)
@@ -242,7 +240,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
         }));
 
     // Color settings section
-    containerEl.createEl('h3', { text: 'Chart Colors' });
+    new Setting(containerEl).setName('Chart Colors').setHeading();
 
     // Primary color
     new Setting(containerEl)

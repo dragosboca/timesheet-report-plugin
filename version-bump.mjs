@@ -1,17 +1,18 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from "fs";
+import process from "process";
 
-// Read minAppVersion from manifest.json
-const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
-const minAppVersion = manifest.minAppVersion;
+const targetVersion = process.env.npm_package_version;
 
-// Update versions.json with the new version
-let versions = {};
-try {
-    versions = JSON.parse(readFileSync('versions.json', 'utf8'));
-} catch (e) {
-    console.log('Could not find versions.json, creating a new one');
+// read minAppVersion from manifest.json and bump version to target version
+const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
+const { minAppVersion } = manifest;
+manifest.version = targetVersion;
+writeFileSync("manifest.json", JSON.stringify(manifest, null, "\t"));
+
+// update versions.json with target version and minAppVersion from manifest.json
+// but only if the target version is not already in versions.json
+const versions = JSON.parse(readFileSync('versions.json', 'utf8'));
+if (!Object.values(versions).includes(minAppVersion)) {
+  versions[targetVersion] = minAppVersion;
+  writeFileSync('versions.json', JSON.stringify(versions, null, '\t'));
 }
-versions[manifest.version] = minAppVersion;
-
-// Write updated versions.json
-writeFileSync('versions.json', JSON.stringify(versions, null, '\t'));

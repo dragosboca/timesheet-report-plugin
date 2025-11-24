@@ -1,4 +1,4 @@
-import { TFile, TFolder } from 'obsidian';
+import { TFile, TFolder, normalizePath } from 'obsidian';
 import TimesheetReportPlugin from './main';
 
 interface TimeEntry {
@@ -56,7 +56,7 @@ export class DataProcessor {
   async processTimesheetData(): Promise<ReportData> {
     try {
       // Get timesheet files from the specified folder
-      const timesheetFolder = this.plugin.settings.timesheetFolder;
+      const timesheetFolder = normalizePath(this.plugin.settings.timesheetFolder);
 
       if (this.plugin.settings.debugMode) {
         console.log('Processing timesheet data from folder:', timesheetFolder);

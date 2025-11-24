@@ -27,8 +27,7 @@ export default class TimesheetReportPlugin extends Plugin {
 
     this.debugLogger.log('Plugin loading');
 
-    // Enable debug mode for quick diagnostics
-    console.log('Timesheet Report Plugin loaded with settings:', this.settings);
+    // Plugin loaded successfully
 
     // Register view
     this.registerView(
@@ -116,8 +115,7 @@ export default class TimesheetReportPlugin extends Plugin {
   }
 
   onunload() {
-    // Clean up when the plugin is disabled
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_TIMESHEET);
+    // Plugin cleanup - views will be automatically cleaned up
   }
 
   /**

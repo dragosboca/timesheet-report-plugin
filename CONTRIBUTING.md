@@ -1,70 +1,69 @@
-# Contributing to Timesheet Report
+# Contributing to Timesheet Report Plugin
 
-Thank you for considering contributing to the Timesheet Report plugin! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
 
-## Getting Started
+## Quick Start
 
-1. Fork the repository
-2. Clone your fork to your local machine
-3. Install dependencies with `npm install`
-4. Run `npm run dev` to start the development server with hot reloading
+1. Fork the repository on GitHub
+2. Clone your fork locally
+3. Install dependencies: `npm install`
+4. Make your changes
+5. Test thoroughly
+6. Submit a pull request
 
-## Development Environment
+## Development Setup
 
-- VSCode is recommended for development
-- Install the Obsidian Hot Reload plugin in your test vault for easy testing
+```bash
+git clone https://github.com/yourusername/timesheet-report-plugin.git
+cd timesheet-report-plugin
+npm install
+npm run dev  # Start development with hot reload
+```
 
-## Project Standards
+## Making Changes
 
 ### Code Style
-
-- Follow TypeScript best practices
-- Use consistent indentation (spaces, not tabs)
-- Add JSDoc comments for public methods and interfaces
-- Follow the existing code style for consistency
-
-### Git Workflow
-
-1. Create a feature branch from `main`
-2. Make your changes
-3. Ensure your code passes linting and builds successfully
-4. Submit a pull request with a clear description of your changes
+- Follow existing TypeScript conventions
+- Use meaningful variable and function names
+- Add JSDoc comments for public APIs
+- Run `npm run build` to ensure code compiles
 
 ### Commit Messages
+Use conventional commit format:
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation updates
+- `refactor:` - Code improvements
+- `test:` - Adding tests
 
-Follow the conventional commits specification:
-- `feat:` for new features
-- `fix:` for bug fixes
-- `docs:` for documentation changes
-- `style:` for code style changes
-- `refactor:` for code refactoring
-- `test:` for adding tests
-- `chore:` for maintenance tasks
+Example: `feat: add budget tracking for retainer projects`
 
-## Testing
+### Testing Your Changes
+1. Build the plugin: `npm run build`
+2. Copy to your Obsidian plugins folder
+3. Test all major features work correctly
+4. Verify in both light and dark themes
 
-- Add unit tests for new functionality
-- Test your changes in Obsidian before submitting a PR
-- Ensure the plugin works in both light and dark themes
+## Pull Request Process
 
-## Documentation
+1. Create a descriptive title
+2. Explain what changes you made and why
+3. Include screenshots for UI changes
+4. Reference any related issues
+5. Ensure all checks pass
 
-- Update the README.md to document new features
-- Keep the DEVELOPER.md file up to date with technical changes
-- Document user-facing changes in the plugin's documentation
+## Reporting Issues
 
-## Release Process
+When reporting bugs or requesting features:
+- Use clear, descriptive titles
+- Provide steps to reproduce (for bugs)
+- Include your Obsidian version and OS
+- Add screenshots if helpful
 
-1. Update the version number in `manifest.json` and `package.json`
-2. Run `npm run version` to update the versions.json file
-3. Build the plugin with `npm run build`
-4. Create a GitHub release with release notes
+## Questions?
 
-## Getting Help
+- Check existing issues and discussions
+- Ask in the Obsidian Discord #plugin-dev channel
+- Open a GitHub issue for specific problems
 
-If you need help or have questions:
-- Check the existing documentation
-- Open an issue on GitHub
-- Reach out to the maintainers
-
-Thank you for contributing!
+We appreciate all contributions, from bug fixes to feature suggestions!

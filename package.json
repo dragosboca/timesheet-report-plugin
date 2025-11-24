@@ -1,23 +1,17 @@
 {
   "name": "timesheet-report",
   "version": "1.0.0",
-  "description": "Obsidian plugin for generating timesheet reports",
+  "description": "This is a timesheet report plugin for Obsidian (https://obsidian.md)",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-    "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "lint": "eslint . --ext .ts",
-    "install-plugin": "./install.sh",
-    "dev-install": "npm run build && npm run install-plugin",
-    "test": "echo \"No tests yet\"",
-    "prepare-release": "npm run lint && npm run build && npm run version"
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": [],
-  "author": "Dragos",
+  "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^29.5.14",
     "@types/node": "^16.11.6",
     "@typescript-eslint/eslint-plugin": "5.29.0",
     "@typescript-eslint/parser": "5.29.0",
