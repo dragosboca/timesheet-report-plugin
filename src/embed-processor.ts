@@ -1,21 +1,24 @@
-// embed-processor.ts
+// embed-processor.ts - Refactored to use unified architecture
 
 import { MarkdownPostProcessorContext } from 'obsidian';
 import TimesheetReportPlugin from './main';
-import { DataProcessor } from './data-processor';
+import { QueryProcessor } from './core/query-processor';
+import { UnifiedTableGenerator, TableOptions } from './core/unified-table-generator';
 import { ChartRenderer } from './chart-renderer';
-import { QueryParser, parseQuery, ParseError } from './query/parser';
+import { parseQuery, ParseError } from './query/parser';
 import { QueryInterpreter, TimesheetQuery, InterpreterError } from './query/interpreter';
 
 export class EmbedProcessor {
   private plugin: TimesheetReportPlugin;
-  private dataProcessor: DataProcessor;
+  private queryProcessor: QueryProcessor;
+  private tableGenerator: UnifiedTableGenerator;
   private chartRenderer: ChartRenderer;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
-    this.dataProcessor = new DataProcessor(plugin);
-    this.chartRenderer = new ChartRenderer(plugin, this.dataProcessor);
+    this.queryProcessor = new QueryProcessor(plugin);
+    this.tableGenerator = new UnifiedTableGenerator();
+    this.chartRenderer = new ChartRenderer(plugin);
   }
 
   registerProcessor() {
@@ -43,146 +46,52 @@ export class EmbedProcessor {
 
   private parseQuery(source: string): TimesheetQuery {
     const ast = parseQuery(source);
-
     const interpreter = new QueryInterpreter();
     const query = interpreter.interpret(ast);
-
     return query;
   }
 
   private async renderTimesheetEmbed(query: TimesheetQuery, el: HTMLElement): Promise<void> {
     // Create container with appropriate styling
     const container = el.createEl('div', {
-      cls: `timesheet-embed timesheet-embed-${query.size}`
+      cls: `timesheet-embed timesheet-embed-${query.size || 'normal'}`
     });
 
     try {
-      // Get filtered data based on query
-      const reportData = await this.dataProcessor.processTimesheetData();
-      const filteredData = this.applyFilters(reportData, query);
+      // Process query to get filtered data
+      const processedData = await this.queryProcessor.processQuery(query);
 
       // Render based on view type
       switch (query.view) {
         case 'summary':
-          this.renderEmbedSummary(container, filteredData, query);
+          this.renderEmbedSummary(container, processedData, query);
           break;
         case 'chart':
-          await this.renderEmbedChart(container, filteredData, query);
+          await this.renderEmbedChart(container, processedData, query);
           break;
         case 'table':
-          this.renderEmbedTable(container, filteredData, query);
+          this.renderEmbedTable(container, processedData, query);
+          break;
+        case 'retainer':
+          this.renderRetainerView(container, processedData, query);
+          break;
+        case 'health':
+          this.renderHealthView(container, processedData, query);
           break;
         case 'full':
-          this.renderEmbedSummary(container, filteredData, query);
-          await this.renderEmbedChart(container, filteredData, query);
-          this.renderEmbedTable(container, filteredData, query);
+          this.renderEmbedSummary(container, processedData, query);
+          await this.renderEmbedChart(container, processedData, query);
+          this.renderEmbedTable(container, processedData, query);
           break;
+        default:
+          this.renderEmbedSummary(container, processedData, query);
       }
     } catch (error) {
       this.renderError(container, `Error rendering timesheet data: ${error.message}`);
     }
   }
 
-  private applyFilters(reportData: unknown, query: TimesheetQuery): unknown {
-    // Type guard to ensure reportData is an object before spreading
-    if (!reportData || typeof reportData !== 'object') {
-      return reportData;
-    }
-
-    const filteredData = { ...reportData as Record<string, unknown> } as Record<string, unknown> & {
-      monthlyData: Array<{
-        year: number;
-        month: number;
-        label: string;
-        hours: number;
-        invoiced: number;
-        utilization: number;
-        budgetProgress?: number;
-      }>;
-    };
-
-    if (query.where) {
-      // Filter monthly data based on conditions
-      if (query.where.year) {
-        filteredData.monthlyData = filteredData.monthlyData.filter((month: {
-          year: number;
-          month: number;
-          label: string;
-          hours: number;
-          invoiced: number;
-          utilization: number;
-          budgetProgress?: number;
-        }) =>
-          month.year === query.where?.year
-        );
-      }
-
-      if (query.where.month) {
-        filteredData.monthlyData = filteredData.monthlyData.filter((month: {
-          year: number;
-          month: number;
-          label: string;
-          hours: number;
-          invoiced: number;
-          utilization: number;
-          budgetProgress?: number;
-        }) =>
-          month.month === query.where?.month
-        );
-      }
-
-      if (query.where.dateRange) {
-        const startDate = new Date(query.where.dateRange.start);
-        const endDate = new Date(query.where.dateRange.end);
-        filteredData.monthlyData = filteredData.monthlyData.filter((month: {
-          year: number;
-          month: number;
-          label: string;
-          hours: number;
-          invoiced: number;
-          utilization: number;
-          budgetProgress?: number;
-        }) => {
-          const monthDate = new Date(month.year, month.month - 1);
-          return monthDate >= startDate && monthDate <= endDate;
-        });
-      }
-    }
-
-    // Apply period filters
-    if (query.period) {
-      const now = new Date();
-      const currentYear = now.getFullYear();
-
-      switch (query.period) {
-        case 'current-year':
-          filteredData.monthlyData = filteredData.monthlyData.filter((month: {
-            year: number;
-            month: number;
-            label: string;
-            hours: number;
-            invoiced: number;
-            utilization: number;
-            budgetProgress?: number;
-          }) =>
-            month.year === currentYear
-          );
-          break;
-        case 'last-6-months':
-          filteredData.monthlyData = filteredData.monthlyData.slice(0, 6);
-          break;
-        case 'last-12-months':
-          filteredData.monthlyData = filteredData.monthlyData.slice(0, 12);
-          break;
-        // 'all-time' shows everything (no filter)
-      }
-    }
-
-    return filteredData;
-  }
-
-  private renderEmbedSummary(container: HTMLElement, data: unknown, query: TimesheetQuery): void {
-    const dataTyped = data as any;
+  private renderEmbedSummary(container: HTMLElement, data: any, query: TimesheetQuery): void {
     const summaryContainer = container.createEl('div', {
       cls: 'timesheet-embed-summary'
     });
@@ -196,34 +105,38 @@ export class EmbedProcessor {
 
     // Create summary grid
     const summaryGrid = summaryContainer.createEl('div', {
-      cls: `timesheet-summary-grid timesheet-summary-${query.size}`
+      cls: `timesheet-summary-grid timesheet-summary-${query.size || 'normal'}`
     });
 
-    // Determine what summaries to show based on period
+    // Determine what summaries to show based on period and size
     const showCurrentYear = query.period === 'current-year' || query.period === 'all-time';
     const showAllTime = query.period === 'all-time' || query.size === 'detailed';
+    const showMain = query.period !== 'current-year' && query.period !== 'all-time';
+
+    if (showMain) {
+      this.renderSummaryColumn(summaryGrid, 'Summary', data.summary, query.size || 'normal');
+    }
 
     if (showCurrentYear) {
-      this.renderSummaryColumn(summaryGrid, 'Current Year', dataTyped.yearSummary, query.size || 'normal');
+      this.renderSummaryColumn(summaryGrid, 'Current Year', data.yearSummary, query.size || 'normal');
     }
 
     if (showAllTime && query.size !== 'compact') {
-      this.renderSummaryColumn(summaryGrid, 'All Time', dataTyped.allTimeSummary, query.size || 'normal');
+      this.renderSummaryColumn(summaryGrid, 'All Time', data.allTimeSummary, query.size || 'normal');
     }
 
     // For compact mode, show only the most relevant summary
-    if (query.size === 'compact' && !showCurrentYear) {
-      this.renderSummaryColumn(summaryGrid, 'Summary', dataTyped.allTimeSummary, query.size || 'normal');
+    if (query.size === 'compact' && !showCurrentYear && !showMain) {
+      this.renderSummaryColumn(summaryGrid, 'Summary', data.allTimeSummary, query.size);
     }
   }
 
   private renderSummaryColumn(
     container: HTMLElement,
     title: string,
-    summary: unknown,
+    summary: any,
     size: string
   ): void {
-    const summaryTyped = summary as any;
     const column = container.createEl('div', {
       cls: 'timesheet-summary-column'
     });
@@ -241,35 +154,43 @@ export class EmbedProcessor {
     // Hours row
     const hoursRow = tbody.createEl('tr');
     hoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
-    hoursRow.createEl('td', { text: this.formatNumber(summaryTyped.totalHours), cls: 'summary-value' });
+    hoursRow.createEl('td', { text: this.formatNumber(summary.totalHours), cls: 'summary-value' });
 
     // Invoiced row
     const invoicedRow = tbody.createEl('tr');
     invoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
-    invoicedRow.createEl('td', { text: `€${this.formatNumber(summaryTyped.totalInvoiced)}`, cls: 'summary-value' });
+    invoicedRow.createEl('td', { text: `€${this.formatNumber(summary.totalInvoiced)}`, cls: 'summary-value' });
 
     // Budget or Utilization row (only in normal/detailed mode)
     if (size !== 'compact') {
-      if (summaryTyped.budgetHours !== undefined) {
+      if (summary.budgetHours !== undefined && summary.budgetHours > 0) {
         const progressRow = tbody.createEl('tr');
         progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
-        progressRow.createEl('td', { text: `${Math.round((summaryTyped.budgetProgress || 0) * 100)}%`, cls: 'summary-value' });
+        progressRow.createEl('td', {
+          text: `${Math.round((summary.budgetProgress || 0) * 100)}%`,
+          cls: 'summary-value'
+        });
 
         if (size === 'detailed') {
           const remainingRow = tbody.createEl('tr');
           remainingRow.createEl('td', { text: 'Remaining', cls: 'summary-label' });
-          remainingRow.createEl('td', { text: `${this.formatNumber(summaryTyped.budgetRemaining || 0)}h`, cls: 'summary-value' });
+          remainingRow.createEl('td', {
+            text: `${this.formatNumber(summary.budgetRemaining || 0)}h`,
+            cls: 'summary-value'
+          });
         }
       } else {
         const utilizationRow = tbody.createEl('tr');
         utilizationRow.createEl('td', { text: 'Utilization', cls: 'summary-label' });
-        utilizationRow.createEl('td', { text: `${Math.round(summaryTyped.utilization * 100)}%`, cls: 'summary-value' });
+        utilizationRow.createEl('td', {
+          text: `${Math.round(summary.utilization * 100)}%`,
+          cls: 'summary-value'
+        });
       }
     }
   }
 
-  private async renderEmbedChart(container: HTMLElement, data: unknown, query: TimesheetQuery): Promise<void> {
-    const dataTyped = data as any;
+  private async renderEmbedChart(container: HTMLElement, data: any, query: TimesheetQuery): Promise<void> {
     const chartContainer = container.createEl('div', {
       cls: 'timesheet-embed-chart'
     });
@@ -286,14 +207,18 @@ export class EmbedProcessor {
     });
 
     try {
+      // Use the chart renderer with processed data
       switch (query.chartType) {
         case 'trend':
-          await this.chartRenderer.renderTrendChart(chartWrapper, dataTyped.trendData);
+          await this.chartRenderer.renderTrendChart(chartWrapper, data.trendData);
           break;
-        case 'monthly':
         case 'budget':
+          await this.chartRenderer.renderBudgetChart(chartWrapper, data.monthlyData);
+          break;
+        // 'utilization' chart type removed - use 'trend' instead which shows both hours and utilization
+        case 'monthly':
         default:
-          await this.chartRenderer.renderMonthlyChart(chartWrapper, dataTyped.monthlyData);
+          await this.chartRenderer.renderMonthlyChart(chartWrapper, data.monthlyData);
           break;
       }
     } catch (error) {
@@ -301,8 +226,7 @@ export class EmbedProcessor {
     }
   }
 
-  private renderEmbedTable(container: HTMLElement, data: unknown, query: TimesheetQuery): void {
-    const dataTyped = data as any;
+  private renderEmbedTable(container: HTMLElement, data: any, query: TimesheetQuery): void {
     const tableContainer = container.createEl('div', {
       cls: 'timesheet-embed-table'
     });
@@ -314,64 +238,118 @@ export class EmbedProcessor {
       });
     }
 
-    // Limit rows based on size
-    let displayData = dataTyped.monthlyData;
+    // Configure table options
+    const tableOptions: TableOptions = {
+      format: 'html',
+      cssClass: 'timesheet-data-table timesheet-embed-data-table',
+      compact: query.size === 'compact',
+      showTotal: query.size !== 'compact'
+    };
+
+    // Use compact columns if needed
+    if (query.size === 'compact') {
+      tableOptions.columns = this.tableGenerator.getCompactColumns('monthly');
+    }
+
+    // Limit data based on size
+    let displayData = data.monthlyData;
     if (query.size === 'compact') {
       displayData = displayData.slice(0, 3);
     } else if (query.size === 'normal') {
       displayData = displayData.slice(0, 6);
     }
 
-    const table = tableContainer.createEl('table', {
-      cls: 'timesheet-data-table timesheet-embed-data-table'
+    // Generate the table
+    const tableHTML = this.tableGenerator.generateMonthlyTable(displayData, tableOptions);
+    tableContainer.innerHTML = tableHTML;
+  }
+
+  private renderRetainerView(container: HTMLElement, data: any, query: TimesheetQuery): void {
+    const retainerContainer = container.createEl('div', {
+      cls: 'timesheet-retainer-view'
     });
 
-    // Check if this is a budget project
-    const isBudgetProject = displayData.some((month: any) => month.budgetHours !== undefined);
+    retainerContainer.createEl('h4', {
+      text: 'Retainer Status',
+      cls: 'timesheet-embed-title'
+    });
 
-    // Table header
-    const thead = table.createEl('thead');
-    const headerRow = thead.createEl('tr');
+    // This would be implemented based on retainer-specific requirements
+    // For now, show a summary with retainer-specific metrics
+    this.renderEmbedSummary(retainerContainer, data, query);
 
-    if (query.size === 'compact') {
-      // Compact header
-      ['Period', 'Hours', 'Revenue'].forEach(header => {
-        headerRow.createEl('th', { text: header });
-      });
-    } else {
-      // Full header based on project type
-      if (isBudgetProject) {
-        ['Period', 'Hours', 'Invoiced', 'Progress'].forEach(header => {
-          headerRow.createEl('th', { text: header });
-        });
-      } else {
-        ['Period', 'Hours', 'Invoiced', 'Utilization'].forEach(header => {
-          headerRow.createEl('th', { text: header });
-        });
-      }
-    }
+    // Add retainer-specific information
+    const retainerInfo = retainerContainer.createEl('div', {
+      cls: 'retainer-info'
+    });
 
-    // Table body
-    const tbody = table.createEl('tbody');
-
-    displayData.forEach((month: any) => {
-      const row = tbody.createEl('tr');
-
-      row.createEl('td', { text: month.label });
-      row.createEl('td', { text: this.formatNumber(month.hours) });
-      row.createEl('td', { text: `€${this.formatNumber(month.invoiced)}` });
-
-      if (query.size !== 'compact') {
-        if (isBudgetProject && month.budgetProgress !== undefined) {
-          row.createEl('td', { text: `${Math.round(month.budgetProgress * 100)}%` });
-        } else {
-          row.createEl('td', { text: `${Math.round(month.utilization * 100)}%` });
+    if (data.summary.budgetHours) {
+      const progressBar = retainerInfo.createEl('div', { cls: 'progress-bar' });
+      progressBar.createEl('div', {
+        cls: 'progress-fill',
+        attr: {
+          style: `width: ${Math.min(100, (data.summary.budgetProgress || 0) * 100)}%`
         }
-      }
+      });
+
+      retainerInfo.createEl('p', {
+        text: `${this.formatNumber(data.summary.totalHours)} of ${this.formatNumber(data.summary.budgetHours)} hours used`
+      });
+    }
+  }
+
+  private renderHealthView(container: HTMLElement, data: any, query: TimesheetQuery): void {
+    const healthContainer = container.createEl('div', {
+      cls: 'timesheet-health-view'
     });
+
+    healthContainer.createEl('h4', {
+      text: 'Project Health',
+      cls: 'timesheet-embed-title'
+    });
+
+    // Calculate health metrics
+    const utilization = data.summary.utilization || 0;
+    const budgetProgress = data.summary.budgetProgress || 0;
+
+    // Health indicators
+    const healthGrid = healthContainer.createEl('div', {
+      cls: 'health-grid'
+    });
+
+    // Utilization health
+    const utilizationHealth = this.getHealthStatus(utilization, 0.7, 0.9);
+    const utilizationItem = healthGrid.createEl('div', {
+      cls: `health-item health-${utilizationHealth}`
+    });
+    utilizationItem.createEl('span', { text: 'Utilization', cls: 'health-label' });
+    utilizationItem.createEl('span', {
+      text: `${Math.round(utilization * 100)}%`,
+      cls: 'health-value'
+    });
+
+    // Budget health (if applicable)
+    if (data.summary.budgetHours) {
+      const budgetHealth = this.getHealthStatus(1 - budgetProgress, 0.2, 0.5);
+      const budgetItem = healthGrid.createEl('div', {
+        cls: `health-item health-${budgetHealth}`
+      });
+      budgetItem.createEl('span', { text: 'Budget', cls: 'health-label' });
+      budgetItem.createEl('span', {
+        text: `${Math.round(budgetProgress * 100)}%`,
+        cls: 'health-value'
+      });
+    }
+  }
+
+  private getHealthStatus(value: number, lowThreshold: number, highThreshold: number): 'good' | 'warning' | 'danger' {
+    if (value >= highThreshold) return 'good';
+    if (value >= lowThreshold) return 'warning';
+    return 'danger';
   }
 
   private renderError(container: HTMLElement, message: string): void {
+    container.empty();
     container.createEl('div', {
       cls: 'timesheet-embed-error',
       text: message
@@ -379,6 +357,9 @@ export class EmbedProcessor {
   }
 
   private formatNumber(num: number): string {
-    return num.toLocaleString('en-US', { maximumFractionDigits: 1 });
+    return num.toLocaleString('en-US', {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0
+    });
   }
 }

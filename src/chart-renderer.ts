@@ -1,5 +1,4 @@
 // chart-renderer.ts
-import { DataProcessor } from './data-processor';
 import TimesheetReportPlugin from './main';
 
 declare global {
@@ -11,11 +10,9 @@ declare global {
 export class ChartRenderer {
   private chartScriptLoaded = false;
   private plugin: TimesheetReportPlugin;
-  private dataProcessor: DataProcessor;
 
-  constructor(plugin: TimesheetReportPlugin, dataProcessor: DataProcessor) {
+  constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
-    this.dataProcessor = dataProcessor;
     this.ensureChartScriptLoaded();
   }
 
@@ -85,19 +82,19 @@ export class ChartRenderer {
       // Try to get colors from Style Settings CSS variables first, then theme variables, then fallbacks
       primaryColor = this.getCSSVariable('--timesheet-color-primary') ||
         this.getCSSVariable('--interactive-accent') ||
-        (isDark ? '#6496dc' : '#4f81bd');
+        (isDark ? '#60a5fa' : '#3b82f6');
 
       secondaryColor = this.getCSSVariable('--timesheet-color-secondary') ||
         this.getCSSVariable('--text-error') ||
-        (isDark ? '#dc6464' : '#c0504d');
+        (isDark ? '#f87171' : '#ef4444');
 
       tertiaryColor = this.getCSSVariable('--timesheet-color-tertiary') ||
         this.getCSSVariable('--text-success') ||
-        (isDark ? '#96c864' : '#9bbb59');
+        (isDark ? '#34d399' : '#10b981');
 
       quaternaryColor = this.getCSSVariable('--timesheet-color-quaternary') ||
         this.getCSSVariable('--text-accent') ||
-        (isDark ? '#aa82be' : '#8064a2');
+        (isDark ? '#a78bfa' : '#8b5cf6');
     } else {
       // Use manual settings from plugin configuration
       primaryColor = this.plugin.settings.chartColors.primary;
@@ -315,11 +312,8 @@ export class ChartRenderer {
         const [monthName, year] = item.label.split(' ');
         const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth() + 1;
 
-        return this.dataProcessor.calculateTargetHoursForMonth(
-          parseInt(year),
-          monthIndex,
-          this.plugin.settings.hoursPerWorkday
-        );
+        const hoursPerWorkday = this.plugin.settings.hoursPerWorkday || 8;
+        return this.getWorkingDaysInMonth(parseInt(year), monthIndex) * hoursPerWorkday;
       });
 
       const maxPossibleInvoice = recentData.map((item, index) => totalWorkingHours[index] * item.rate);
@@ -447,4 +441,113 @@ export class ChartRenderer {
       }
     });
   }
+
+  private getWorkingDaysInMonth(year: number, month: number): number {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    let workingDays = 0;
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return workingDays;
+  }
+
+  async renderBudgetChart(container: HTMLElement, monthlyData: Array<any>): Promise<void> {
+    await this.ensureChartScriptLoaded();
+
+    if (!window.Chart) {
+      throw new Error('Chart.js library not loaded');
+    }
+
+    const canvas = container.createEl('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('Could not get canvas context');
+    }
+
+    const colors = this.getColorPalette();
+
+    // Filter budget projects
+    const budgetData = monthlyData.filter(month => month.budgetHours !== undefined);
+
+    const Chart = window.Chart as any;
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: budgetData.map(month => month.label),
+        datasets: [
+          {
+            label: 'Hours Used',
+            data: budgetData.map(month => month.hours),
+            backgroundColor: colors.primary,
+            borderColor: colors.primary,
+            borderWidth: 1
+          },
+          {
+            label: 'Budget Remaining',
+            data: budgetData.map(month => Math.max(0, (month.budgetHours || 0) - month.cumulativeHours)),
+            backgroundColor: colors.secondary,
+            borderColor: colors.secondary,
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: {
+              color: colors.grid
+            },
+            ticks: {
+              color: colors.text
+            }
+          },
+          y: {
+            stacked: true,
+            title: {
+              display: true,
+              text: 'Hours',
+              color: colors.text
+            },
+            grid: {
+              color: colors.grid
+            },
+            ticks: {
+              color: colors.text
+            }
+          }
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: 'Budget Progress',
+            color: colors.text,
+            font: {
+              size: 16
+            }
+          },
+          legend: {
+            position: 'top',
+            labels: {
+              color: colors.text
+            }
+          }
+        }
+      }
+    });
+  }
+
+
 }

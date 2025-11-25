@@ -15,7 +15,17 @@ import {
   IdentifierNode,
   ListNode,
   DateRangeNode,
-  ASTVisitor
+  ASTVisitor,
+  RetainerClauseNode,
+  ServiceClauseNode,
+  RolloverClauseNode,
+  UtilizationClauseNode,
+  ContractClauseNode,
+  ValueClauseNode,
+  AlertClauseNode,
+  ForecastClauseNode,
+  PercentageLiteralNode,
+  RelativeDateNode
 } from './ast';
 
 export interface TimesheetQuery {
@@ -24,12 +34,51 @@ export interface TimesheetQuery {
     month?: number;
     project?: string;
     dateRange?: { start: string; end: string };
+    service?: string;
+    category?: string;
+    utilization?: number;
+    rollover?: number;
+    value?: number;
+    priority?: string;
   };
   show?: string[];
-  view?: 'summary' | 'chart' | 'table' | 'full';
-  chartType?: 'trend' | 'monthly' | 'budget';
-  period?: 'current-year' | 'all-time' | 'last-6-months' | 'last-12-months';
+  view?: 'summary' | 'chart' | 'table' | 'full' | 'retainer' | 'health' | 'rollover' | 'services' | 'contract' | 'performance' | 'renewal';
+  chartType?: 'trend' | 'monthly' | 'budget' | 'service_mix' | 'rollover_trend' | 'health_score' | 'value_delivery' | 'response_time' | 'satisfaction' | 'forecast' | 'burn_rate';
+  period?: 'current-year' | 'all-time' | 'last-6-months' | 'last-12-months' | 'next-month' | 'next-quarter' | 'contract-term';
   size?: 'compact' | 'normal' | 'detailed';
+  // Retainer-specific query results
+  retainer?: {
+    type?: 'health' | 'status' | 'forecast' | 'analysis' | 'performance' | 'optimization';
+    options?: any;
+  };
+  service?: {
+    categories?: string[];
+    options?: any;
+  };
+  rollover?: {
+    type?: 'status' | 'available' | 'expiring' | 'history' | 'forecast';
+    options?: any;
+  };
+  utilization?: {
+    type?: 'current' | 'target' | 'average' | 'trend' | 'efficiency';
+    threshold?: any;
+  };
+  contract?: {
+    type?: 'status' | 'renewal' | 'performance' | 'health' | 'terms';
+    options?: any;
+  };
+  value?: {
+    type?: 'delivered' | 'projected' | 'impact' | 'roi' | 'efficiency';
+    options?: any;
+  };
+  alerts?: Array<{
+    type: string;
+    threshold: number;
+  }>;
+  forecasts?: Array<{
+    type: string;
+    horizon?: string;
+  }>;
 }
 
 export class QueryInterpreter implements ASTVisitor<any> {
@@ -68,6 +117,22 @@ export class QueryInterpreter implements ASTVisitor<any> {
         return this.visitPeriodClause(node);
       case 'SizeClause':
         return this.visitSizeClause(node);
+      case 'RetainerClause':
+        return this.visitRetainerClause(node as RetainerClauseNode);
+      case 'ServiceClause':
+        return this.visitServiceClause(node as ServiceClauseNode);
+      case 'RolloverClause':
+        return this.visitRolloverClause(node as RolloverClauseNode);
+      case 'UtilizationClause':
+        return this.visitUtilizationClause(node as UtilizationClauseNode);
+      case 'ContractClause':
+        return this.visitContractClause(node as ContractClauseNode);
+      case 'ValueClause':
+        return this.visitValueClause(node as ValueClauseNode);
+      case 'AlertClause':
+        return this.visitAlertClause(node as AlertClauseNode);
+      case 'ForecastClause':
+        return this.visitForecastClause(node as ForecastClauseNode);
       default:
         throw new Error(`Unknown clause type: ${(node as any).type}`);
     }
@@ -217,6 +282,77 @@ export class QueryInterpreter implements ASTVisitor<any> {
         // Be lenient with unknown fields - just ignore them
         console.warn(`Unknown field in WHERE clause: ${fieldName}`);
     }
+  }
+
+  // Retainer-specific visitor methods
+  visitRetainerClause(node: RetainerClauseNode): any {
+    this.query.retainer = {
+      type: node.retainerType,
+      options: node.options
+    };
+    return this.query.retainer;
+  }
+
+  visitServiceClause(node: ServiceClauseNode): any {
+    this.query.service = {
+      categories: node.categories,
+      options: node.options
+    };
+    return this.query.service;
+  }
+
+  visitRolloverClause(node: RolloverClauseNode): any {
+    this.query.rollover = {
+      type: node.rolloverType,
+      options: node.options
+    };
+    return this.query.rollover;
+  }
+
+  visitUtilizationClause(node: UtilizationClauseNode): any {
+    this.query.utilization = {
+      type: node.utilizationType,
+      threshold: node.threshold
+    };
+    return this.query.utilization;
+  }
+
+  visitContractClause(node: ContractClauseNode): any {
+    this.query.contract = {
+      type: node.contractType,
+      options: node.options
+    };
+    return this.query.contract;
+  }
+
+  visitValueClause(node: ValueClauseNode): any {
+    this.query.value = {
+      type: node.valueType,
+      options: node.options
+    };
+    return this.query.value;
+  }
+
+  visitAlertClause(node: AlertClauseNode): any {
+    if (!this.query.alerts) {
+      this.query.alerts = [];
+    }
+    this.query.alerts.push({
+      type: node.alertType,
+      threshold: node.threshold
+    });
+    return this.query.alerts;
+  }
+
+  visitForecastClause(node: ForecastClauseNode): any {
+    if (!this.query.forecasts) {
+      this.query.forecasts = [];
+    }
+    this.query.forecasts.push({
+      type: node.forecastType,
+      horizon: node.horizon
+    });
+    return this.query.forecasts;
   }
 }
 

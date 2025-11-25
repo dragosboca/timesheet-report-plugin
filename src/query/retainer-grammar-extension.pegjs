@@ -1,5 +1,5 @@
-// Enhanced Peggy grammar for retainer-capable timesheet query language
-// This grammar supports basic timesheet queries plus sophisticated retainer management features
+// Enhanced Peggy grammar for retainer-specific timesheet query language
+// This extends the base grammar with sophisticated retainer management features
 
 {
   // Enhanced helper functions for retainer AST node creation
@@ -159,15 +159,8 @@
 
 // Main query structure - enhanced to support retainer features
 Query
-  = _ clauses:(Clause (_ Clause)*)? _ {
-      if (!clauses) {
-        return createQuery([]);
-      }
-      const allClauses = [clauses[0]];
-      if (clauses[1]) {
-        clauses[1].forEach(item => allClauses.push(item[1]));
-      }
-      return createQuery(allClauses);
+  = clauses:(Clause (_ Clause)*) {
+      return createQuery(clauses.map(c => c[0]));
     }
 
 Clause
@@ -224,52 +217,52 @@ ServiceCondition
 
 // NEW: Utilization-based conditions
 UtilizationCondition
-  = "utilization"i __ operator:ComparisonOperator __ value:NumberValue {
+  = "utilization"i __ operator:ComparisonOperator __ value:Number {
       return createBinaryExpression(
         createIdentifier('utilization'),
         operator,
-        value
+        createLiteral(parseFloat(value), 'number')
       );
     }
-  / "usage"i __ operator:ComparisonOperator __ value:NumberValue {
+  / "usage"i __ operator:ComparisonOperator __ value:Number {
       return createBinaryExpression(
         createIdentifier('usage'),
         operator,
-        value
+        createLiteral(parseFloat(value), 'number')
       );
     }
 
 // NEW: Rollover hour conditions
 RolloverCondition
-  = "rollover"i __ operator:ComparisonOperator __ value:NumberValue {
+  = "rollover"i __ operator:ComparisonOperator __ value:Number {
       return createBinaryExpression(
         createIdentifier('rollover'),
         operator,
-        value
+        createLiteral(parseFloat(value), 'number')
       );
     }
-  / "banked"i __ operator:ComparisonOperator __ value:NumberValue {
+  / "banked"i __ operator:ComparisonOperator __ value:Number {
       return createBinaryExpression(
         createIdentifier('banked'),
         operator,
-        value
+        createLiteral(parseFloat(value), 'number')
       );
     }
 
 // NEW: Value impact conditions
 ValueCondition
-  = "value"i __ operator:ComparisonOperator __ amount:NumberValue {
+  = "value"i __ operator:ComparisonOperator __ amount:Number {
       return createBinaryExpression(
         createIdentifier('value'),
         operator,
-        amount
+        createLiteral(parseFloat(amount), 'number')
       );
     }
-  / "impact"i __ operator:ComparisonOperator __ amount:NumberValue {
+  / "impact"i __ operator:ComparisonOperator __ amount:Number {
       return createBinaryExpression(
         createIdentifier('impact'),
         operator,
-        amount
+        createLiteral(parseFloat(amount), 'number')
       );
     }
 
@@ -429,11 +422,11 @@ RetainerOptions
     }
 
 RetainerOption
-  = "threshold"i __ "=" __ value:NumberValue {
-      return { key: 'threshold', value: value.value };
+  = "threshold"i __ "=" __ value:Number {
+      return { key: 'threshold', value: parseFloat(value) };
     }
-  / "period"i __ "=" __ value:StringValue {
-      return { key: 'period', value: value.value };
+  / "period"i __ "=" __ value:String {
+      return { key: 'period', value };
     }
 
 // NEW: SERVICE clause for service category analysis
@@ -489,11 +482,11 @@ RolloverType
   / "forecast"i    { return 'forecast'; }
 
 RolloverOptions
-  = __ "WITHIN"i __ period:PeriodValue {
-      return { period: period };
+  = __ "WITHIN"i __ period:Period {
+      return { period };
     }
-  / __ "EXPIRING"i __ "IN"i __ days:NumberValue __ "DAYS"i {
-      return { expiringDays: parseInt(days.value) };
+  / __ "EXPIRING"i __ "IN"i __ days:Number __ "DAYS"i {
+      return { expiringDays: parseInt(days) };
     }
 
 // NEW: UTILIZATION clause for usage analysis
@@ -510,14 +503,14 @@ UtilizationType
   / "efficiency"i  { return 'efficiency'; }
 
 UtilizationThreshold
-  = __ "ABOVE"i __ value:NumberValue {
-      return { type: 'above', value: value.dataType === 'percentage' ? value.value : value.value };
+  = __ "ABOVE"i __ value:Number {
+      return { type: 'above', value: parseFloat(value) };
     }
-  / __ "BELOW"i __ value:NumberValue {
-      return { type: 'below', value: value.dataType === 'percentage' ? value.value : value.value };
+  / __ "BELOW"i __ value:Number {
+      return { type: 'below', value: parseFloat(value) };
     }
-  / __ "BETWEEN"i __ min:NumberValue __ "AND"i __ max:NumberValue {
-      return { type: 'between', min: min.value, max: max.value };
+  / __ "BETWEEN"i __ min:Number __ "AND"i __ max:Number {
+      return { type: 'between', min: parseFloat(min), max: parseFloat(max) };
     }
 
 // NEW: CONTRACT clause for contract management
@@ -534,8 +527,8 @@ ContractType
   / "terms"i       { return 'terms'; }
 
 ContractOptions
-  = __ "DUE"i __ "IN"i __ days:NumberValue __ "DAYS"i {
-      return { dueInDays: parseInt(days.value) };
+  = __ "DUE"i __ "IN"i __ days:Number __ "DAYS"i {
+      return { dueInDays: parseInt(days) };
     }
   / __ "WITH"i __ "RISK"i __ level:("high"i / "medium"i / "low"i) {
       return { riskLevel: level.toLowerCase() };
@@ -555,8 +548,8 @@ ValueType
   / "efficiency"i  { return 'efficiency'; }
 
 ValueOptions
-  = __ "ABOVE"i __ amount:NumberValue {
-      return { threshold: amount.value, type: 'above' };
+  = __ "ABOVE"i __ amount:Number {
+      return { threshold: parseFloat(amount), type: 'above' };
     }
   / __ "BY"i __ category:ServiceCategory {
       return { category };
@@ -564,8 +557,8 @@ ValueOptions
 
 // NEW: ALERT clause for threshold monitoring
 AlertClause
-  = "ALERT"i __ alertType:AlertType __ "AT"i __ threshold:NumberValue "%" {
-      return createAlertClause(alertType, threshold.value);
+  = "ALERT"i __ alertType:AlertType __ "AT"i __ threshold:Number "%" {
+      return createAlertClause(alertType, parseFloat(threshold));
     }
 
 AlertType
@@ -589,12 +582,12 @@ ForecastType
   / "value"i        { return 'value'; }
 
 ForecastHorizon
-  = __ "FOR"i __ period:PeriodValue {
+  = __ "FOR"i __ period:Period {
       return period;
     }
 
 // Enhanced period support
-PeriodValue
+Period
   = "current-year"i      { return 'current-year'; }
   / "all-time"i          { return 'all-time'; }
   / "last-6-months"i     { return 'last-6-months'; }
@@ -604,7 +597,7 @@ PeriodValue
   / "contract-term"i     { return 'contract-term'; }  // NEW
 
 PeriodClause
-  = "PERIOD"i __ period:PeriodValue {
+  = "PERIOD"i __ period:Period {
       return createPeriodClause(period);
     }
 
@@ -629,18 +622,9 @@ ComparisonOperator
 
 // Enhanced value types
 Value
-  = StringValue
-  / NumberValue
-  / DateValue
-
-StringValue
   = String
-
-NumberValue
-  = Number
-
-DateValue
-  = Date
+  / Number
+  / Date
 
 List
   = "(" __ first:Value rest:(__ "," __ Value)* __ ")" {

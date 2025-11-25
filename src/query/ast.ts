@@ -8,7 +8,7 @@ export interface ASTNode {
 export interface LiteralNode extends ASTNode {
   type: 'Literal';
   value: string | number;
-  dataType: 'string' | 'number' | 'date';
+  dataType: 'string' | 'number' | 'date' | 'percentage' | 'relative_date';
 }
 
 export interface IdentifierNode extends ASTNode {
@@ -72,8 +72,102 @@ export interface QueryNode extends ASTNode {
   clauses: ClauseNode[];
 }
 
+// Retainer-specific AST node interfaces
+export interface RetainerClauseNode extends ASTNode {
+  type: 'RetainerClause';
+  retainerType: 'health' | 'status' | 'forecast' | 'analysis' | 'performance' | 'optimization';
+  options?: {
+    threshold?: number;
+    period?: string;
+    [key: string]: any;
+  };
+}
+
+export interface ServiceClauseNode extends ASTNode {
+  type: 'ServiceClause';
+  categories: string[];
+  options?: {
+    efficiency?: 'high' | 'medium' | 'low';
+    priority?: 'urgent' | 'normal' | 'low';
+    [key: string]: any;
+  };
+}
+
+export interface RolloverClauseNode extends ASTNode {
+  type: 'RolloverClause';
+  rolloverType: 'status' | 'available' | 'expiring' | 'history' | 'forecast';
+  options?: {
+    period?: string;
+    expiringDays?: number;
+    [key: string]: any;
+  };
+}
+
+export interface UtilizationClauseNode extends ASTNode {
+  type: 'UtilizationClause';
+  utilizationType: 'current' | 'target' | 'average' | 'trend' | 'efficiency';
+  threshold?: {
+    type: 'above' | 'below' | 'between';
+    value?: number;
+    min?: number;
+    max?: number;
+  };
+}
+
+export interface ContractClauseNode extends ASTNode {
+  type: 'ContractClause';
+  contractType: 'status' | 'renewal' | 'performance' | 'health' | 'terms';
+  options?: {
+    dueInDays?: number;
+    riskLevel?: 'high' | 'medium' | 'low';
+    [key: string]: any;
+  };
+}
+
+export interface ValueClauseNode extends ASTNode {
+  type: 'ValueClause';
+  valueType: 'delivered' | 'projected' | 'impact' | 'roi' | 'efficiency';
+  options?: {
+    threshold?: number;
+    type?: 'above' | 'below';
+    category?: string;
+    [key: string]: any;
+  };
+}
+
+export interface AlertClauseNode extends ASTNode {
+  type: 'AlertClause';
+  alertType: 'utilization' | 'rollover' | 'budget' | 'satisfaction' | 'response';
+  threshold: number;
+}
+
+export interface ForecastClauseNode extends ASTNode {
+  type: 'ForecastClause';
+  forecastType: 'utilization' | 'rollover' | 'renewal' | 'budget' | 'value';
+  horizon?: 'month' | 'quarter' | 'year' | 'contract-term';
+}
+
+export interface PercentageLiteralNode extends LiteralNode {
+  dataType: 'percentage';
+}
+
+export interface RelativeDateNode extends LiteralNode {
+  dataType: 'relative_date';
+  value: 'today' | 'yesterday' | 'last_month';
+}
+
 // Union types
-export type ExpressionNode = LiteralNode | IdentifierNode | DateRangeNode | ListNode;
+export type ExpressionNode = LiteralNode | IdentifierNode | DateRangeNode | ListNode | PercentageLiteralNode | RelativeDateNode;
+
+export type RetainerClauseTypes =
+  | RetainerClauseNode
+  | ServiceClauseNode
+  | RolloverClauseNode
+  | UtilizationClauseNode
+  | ContractClauseNode
+  | ValueClauseNode
+  | AlertClauseNode
+  | ForecastClauseNode;
 
 export type ClauseNode =
   | WhereClauseNode
@@ -81,9 +175,10 @@ export type ClauseNode =
   | ViewClauseNode
   | ChartClauseNode
   | PeriodClauseNode
-  | SizeClauseNode;
+  | SizeClauseNode
+  | RetainerClauseTypes;
 
-// Visitor pattern interface for AST traversal
+// Enhanced visitor pattern interface for AST traversal with retainer support
 export interface ASTVisitor<T> {
   visitQuery(node: QueryNode): T;
   visitWhereClause(node: WhereClauseNode): T;
@@ -97,6 +192,15 @@ export interface ASTVisitor<T> {
   visitIdentifier(node: IdentifierNode): T;
   visitList(node: ListNode): T;
   visitDateRange(node: DateRangeNode): T;
+  // Retainer-specific visitor methods
+  visitRetainerClause(node: RetainerClauseNode): T;
+  visitServiceClause(node: ServiceClauseNode): T;
+  visitRolloverClause(node: RolloverClauseNode): T;
+  visitUtilizationClause(node: UtilizationClauseNode): T;
+  visitContractClause(node: ContractClauseNode): T;
+  visitValueClause(node: ValueClauseNode): T;
+  visitAlertClause(node: AlertClauseNode): T;
+  visitForecastClause(node: ForecastClauseNode): T;
 }
 
 // Helper function to create AST nodes
@@ -168,6 +272,91 @@ export const createQuery = (clauses: ClauseNode[]): QueryNode => ({
   clauses
 });
 
+// Retainer-specific factory functions
+export const createRetainerClause = (
+  retainerType: RetainerClauseNode['retainerType'],
+  options?: RetainerClauseNode['options']
+): RetainerClauseNode => ({
+  type: 'RetainerClause',
+  retainerType,
+  options
+});
+
+export const createServiceClause = (
+  categories: string[],
+  options?: ServiceClauseNode['options']
+): ServiceClauseNode => ({
+  type: 'ServiceClause',
+  categories,
+  options
+});
+
+export const createRolloverClause = (
+  rolloverType: RolloverClauseNode['rolloverType'],
+  options?: RolloverClauseNode['options']
+): RolloverClauseNode => ({
+  type: 'RolloverClause',
+  rolloverType,
+  options
+});
+
+export const createUtilizationClause = (
+  utilizationType: UtilizationClauseNode['utilizationType'],
+  threshold?: UtilizationClauseNode['threshold']
+): UtilizationClauseNode => ({
+  type: 'UtilizationClause',
+  utilizationType,
+  threshold
+});
+
+export const createContractClause = (
+  contractType: ContractClauseNode['contractType'],
+  options?: ContractClauseNode['options']
+): ContractClauseNode => ({
+  type: 'ContractClause',
+  contractType,
+  options
+});
+
+export const createValueClause = (
+  valueType: ValueClauseNode['valueType'],
+  options?: ValueClauseNode['options']
+): ValueClauseNode => ({
+  type: 'ValueClause',
+  valueType,
+  options
+});
+
+export const createAlertClause = (
+  alertType: AlertClauseNode['alertType'],
+  threshold: number
+): AlertClauseNode => ({
+  type: 'AlertClause',
+  alertType,
+  threshold
+});
+
+export const createForecastClause = (
+  forecastType: ForecastClauseNode['forecastType'],
+  horizon?: ForecastClauseNode['horizon']
+): ForecastClauseNode => ({
+  type: 'ForecastClause',
+  forecastType,
+  horizon
+});
+
+export const createPercentageLiteral = (value: number): PercentageLiteralNode => ({
+  type: 'Literal',
+  value,
+  dataType: 'percentage'
+});
+
+export const createRelativeDate = (value: RelativeDateNode['value']): RelativeDateNode => ({
+  type: 'Literal',
+  value,
+  dataType: 'relative_date'
+});
+
 // Utility functions that work with ASTNode
 export function walkAST(node: ASTNode, visitor: (node: ASTNode) => void): void {
   visitor(node);
@@ -217,6 +406,39 @@ export function walkAST(node: ASTNode, visitor: (node: ASTNode) => void): void {
     case 'PeriodClause':
     case 'SizeClause':
       break;
+    case 'RetainerClause': {
+      const retainerClause = node as RetainerClauseNode;
+      if (retainerClause.options) {
+        Object.values(retainerClause.options).forEach(value => {
+          if (typeof value === 'object' && value !== null && (value as any).type) {
+            walkAST(value as ASTNode, visitor);
+          }
+        });
+      }
+      break;
+    }
+    case 'ServiceClause':
+    case 'AlertClause':
+    case 'ForecastClause':
+      // These clauses have primitive options only
+      break;
+    case 'RolloverClause':
+    case 'UtilizationClause':
+    case 'ContractClause':
+    case 'ValueClause': {
+      const clause = node as any;
+      if (clause.options) {
+        Object.values(clause.options).forEach(value => {
+          if (typeof value === 'object' && value !== null && (value as any).type) {
+            walkAST(value as ASTNode, visitor);
+          }
+        });
+      }
+      if (clause.threshold && typeof clause.threshold === 'object') {
+        // Threshold objects are not ASTNodes, they're plain objects
+      }
+      break;
+    }
   }
 }
 

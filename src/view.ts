@@ -27,7 +27,7 @@ export class TimesheetReportView extends ItemView {
     super(leaf);
     this.plugin = plugin;
     this.dataProcessor = new DataProcessor(this.plugin);
-    this.chartRenderer = new ChartRenderer(this.plugin, this.dataProcessor);
+    this.chartRenderer = new ChartRenderer(this.plugin);
   }
 
   getViewType(): string {
@@ -131,14 +131,18 @@ export class TimesheetReportView extends ItemView {
       if (this.plugin.settings.debugMode) {
         this.plugin.debugLogger.log('Data processed successfully', {
           totalEntries: reportData.monthlyData.length,
-          currentYear: reportData.currentYear,
+          currentYear: new Date().getFullYear(),
           yearTotalHours: reportData.yearSummary.totalHours,
           allTimeTotalHours: reportData.allTimeSummary.totalHours
         });
       }
 
       // Render summary cards
-      this.renderSummaryCards(container, reportData);
+      this.renderSummaryCards(container, {
+        currentYear: new Date().getFullYear(),
+        yearSummary: reportData.yearSummary,
+        allTimeSummary: reportData.allTimeSummary
+      });
 
       // Render target hours information
       if (this.plugin.settings.debugMode) {
@@ -393,8 +397,7 @@ export class TimesheetReportView extends ItemView {
       const workingDays = this.dataProcessor.getWorkingDaysInMonth(currentYear, currentMonth);
       const targetHours = this.dataProcessor.calculateTargetHoursForMonth(
         currentYear,
-        currentMonth,
-        hoursPerDay
+        currentMonth
       );
 
       // Create info text
@@ -563,25 +566,26 @@ export class TimesheetReportView extends ItemView {
         const cache = this.plugin.app.metadataCache.getFileCache(file);
 
         // Try to extract date using dataProcessor methods
-        const date = this.dataProcessor.extractDateFromFile(file, cache);
+        const date = await this.dataProcessor.extractDateFromFile(file);
 
         const row = tbody.createEl('tr');
         row.createEl('td', { text: file.basename });
 
-        if (date && !isNaN(date.getTime())) {
+        const resolvedDate = await date;
+        if (resolvedDate && !isNaN(resolvedDate.getTime())) {
           successCount++;
 
           // Determine source of date extraction
           let source = 'unknown';
-          if (file.basename.match(/\d{4}-\d{2}-\d{2}/)) {
-            source = 'filename';
-          } else if (cache?.frontmatter?.date) {
+          if (cache?.frontmatter?.date) {
             source = 'frontmatter';
+          } else if (file.basename.match(/\d{4}-\d{2}-\d{2}/)) {
+            source = 'filename';
           } else if (file.path.match(/\/\d{4}-\d{2}-\d{2}/)) {
             source = 'path';
           }
 
-          row.createEl('td', { text: date.toISOString().split('T')[0] });
+          row.createEl('td', { text: resolvedDate.toISOString().split('T')[0] });
           row.createEl('td', { text: source });
           row.createEl('td', { text: '✅ Valid' });
         } else {

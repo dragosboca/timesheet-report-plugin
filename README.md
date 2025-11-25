@@ -246,7 +246,7 @@ VIEW chart
 - `VIEW full` - Everything (summary + chart + table)
 
 #### CHART Types
-- `CHART trend` - Hours and utilization over time
+- `CHART trend` - Hours and utilization over time (combined chart)
 - `CHART monthly` - Monthly revenue/budget analysis
 - `CHART budget` - Budget consumption (fixed-hour projects)
 

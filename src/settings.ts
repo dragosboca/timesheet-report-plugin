@@ -39,10 +39,10 @@ export const DEFAULT_SETTINGS: TimesheetReportSettings = {
   defaultReportTemplate: '',
   useStyleSettings: true,    // Default to using Style Settings if available
   chartColors: {
-    primary: '#4f81bd',
-    secondary: '#c0504d',
-    tertiary: '#9bbb59',
-    quaternary: '#8064a2',
+    primary: '#3b82f6',      // Modern blue
+    secondary: '#ef4444',    // Modern red
+    tertiary: '#10b981',     // Modern green
+    quaternary: '#8b5cf6',   // Modern purple
     background: 'rgba(0, 0, 0, 0.05)',
   },
   project: {
@@ -283,7 +283,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
       .setName('Primary Color')
       .setDesc('Main chart color (for hours data)')
       .addText(text => text
-        .setPlaceholder('#4f81bd')
+        .setPlaceholder('#3b82f6')
         .setValue(this.plugin.settings.chartColors.primary)
         .onChange(async (value) => {
           this.plugin.settings.chartColors.primary = value;
@@ -295,7 +295,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
       .setName('Secondary Color')
       .setDesc('Secondary chart color (for utilization)')
       .addText(text => text
-        .setPlaceholder('#c0504d')
+        .setPlaceholder('#ef4444')
         .setValue(this.plugin.settings.chartColors.secondary)
         .onChange(async (value) => {
           this.plugin.settings.chartColors.secondary = value;
@@ -307,7 +307,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
       .setName('Success Color')
       .setDesc('Color for revenue and positive metrics')
       .addText(text => text
-        .setPlaceholder('#9bbb59')
+        .setPlaceholder('#10b981')
         .setValue(this.plugin.settings.chartColors.tertiary)
         .onChange(async (value) => {
           this.plugin.settings.chartColors.tertiary = value;
@@ -319,7 +319,7 @@ export class TimesheetReportSettingTab extends PluginSettingTab {
       .setName('Accent Color')
       .setDesc('Color for budget and additional data')
       .addText(text => text
-        .setPlaceholder('#8064a2')
+        .setPlaceholder('#8b5cf6')
         .setValue(this.plugin.settings.chartColors.quaternary)
         .onChange(async (value) => {
           this.plugin.settings.chartColors.quaternary = value;

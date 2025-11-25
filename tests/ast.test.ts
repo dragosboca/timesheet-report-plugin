@@ -98,7 +98,7 @@ describe('AST Utilities', () => {
         }
       });
 
-      expect(literalValues).toContain("2024");
+      expect(literalValues).toContain(2024);
       expect(literalValues).toContain('Test');
       expect(identifierNames).toContain('year');
       expect(identifierNames).toContain('project');
@@ -110,7 +110,7 @@ describe('AST Utilities', () => {
       const literals = findNodesByType<LiteralNode>(sampleAST, 'Literal');
 
       expect(literals).toHaveLength(2);
-      expect(literals[0].value).toBe("2024");
+      expect(literals[0].value).toBe(2024);
       expect(literals[1].value).toBe('Test');
     });
 

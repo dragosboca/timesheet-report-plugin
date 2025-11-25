@@ -49,9 +49,17 @@ worked: true
 - Fixed responsive design issues on mobile
 - Client meeting to review progress
 
-## Notes
-Productive day with good progress on the authentication module. Client was pleased with the mobile improvements.
+**Total: 8.5 hours @ $75/hour = $637.50**
 ```
+
+**Important:** The plugin looks for specific frontmatter fields:
+- `per-hour`: Your hourly rate (preferred field name)
+- `hours`: Total hours worked
+- `work-order`: Project identifier
+- `client`: Client name
+- `worked`: Set to `false` for non-working days
+
+⚠️ **Common Issue:** Make sure to use `per-hour` (not `rate`) as this matches the historical format expected by the plugin.
 
 ### 3. View Your Report
 
@@ -581,7 +589,7 @@ VIEW full      # Everything (summary + chart + table)
 #### CHART Types
 
 ```
-CHART trend     # Hours and utilization over time
+CHART trend     # Hours and utilization over time (combined chart)
 CHART monthly   # Monthly revenue and budget analysis
 CHART budget    # Budget consumption for fixed-hour projects
 ```

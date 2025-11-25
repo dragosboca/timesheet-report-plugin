@@ -1,26 +1,26 @@
 import { TFile, App, Notice } from 'obsidian';
 import TimesheetReportPlugin from './main';
 import { ObsidianTemplateManager } from './template-manager';
-import { ObsidianTimesheetDataExtractor } from './timesheet-data-extractor';
+import { UnifiedDataExtractor } from './core/unified-data-extractor';
+import { UnifiedTableGenerator, TableOptions } from './core/unified-table-generator';
 import { ObsidianReportSaver } from './report-saver';
-import { ReportTableGenerator } from './report-table-generator';
 import { MonthData } from './types';
 
 export class ReportGenerator {
   private plugin: TimesheetReportPlugin;
   private app: App;
   private templateManager: ObsidianTemplateManager;
-  private dataExtractor: ObsidianTimesheetDataExtractor;
+  private dataExtractor: UnifiedDataExtractor;
   private reportSaver: ObsidianReportSaver;
-  private tableGenerator: ReportTableGenerator;
+  private tableGenerator: UnifiedTableGenerator;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
     this.app = plugin.app;
     this.templateManager = new ObsidianTemplateManager(plugin);
-    this.dataExtractor = new ObsidianTimesheetDataExtractor(plugin);
+    this.dataExtractor = new UnifiedDataExtractor(plugin);
     this.reportSaver = new ObsidianReportSaver(plugin);
-    this.tableGenerator = new ReportTableGenerator();
+    this.tableGenerator = new UnifiedTableGenerator();
   }
 
   /**
@@ -51,21 +51,19 @@ export class ReportGenerator {
       this.plugin.debugLogger?.log('Extracting timesheet data...');
       const monthlyData = await this.dataExtractor.getMonthlyData(year, month);
 
-      // Validate extracted data
-      const validation = this.tableGenerator.validateEntries(monthlyData);
-      if (!validation.valid) {
-        this.plugin.debugLogger?.log('Data validation warnings:', validation.errors);
-        // Continue with generation but log warnings
-        new Notice(`Data validation warnings: ${validation.errors.slice(0, 3).join(', ')}${validation.errors.length > 3 ? '...' : ''}`, 5000);
-      }
-
       if (monthlyData.length === 0) {
         this.plugin.debugLogger?.log(`No timesheet data found for ${month}/${year}`);
         // Still generate report with empty data
       }
 
-      // Generate report table
-      const reportTable = this.tableGenerator.generateReportTable(monthlyData);
+      // Generate report table using unified table generator
+      const tableOptions: TableOptions = {
+        format: 'markdown',
+        showTotal: true,
+        title: `Timesheet for ${month}/${year}`
+      };
+
+      const reportTable = this.tableGenerator.generateDailyTable(monthlyData, tableOptions);
 
       // Calculate total hours
       const totalHours = this.tableGenerator.calculateTotalHours(monthlyData);
