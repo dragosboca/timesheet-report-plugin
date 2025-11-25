@@ -1,344 +1,249 @@
-// Parser for the timesheet query language
+// Timesheet Query Language Parser
+// Grammar-based parser using Peggy (PEG.js successor)
 
-import {
-  Token,
-  TokenType,
-  Tokenizer
-} from './tokenizer';
-
-import {
-  QueryNode,
-  ClauseNode,
-  WhereClauseNode,
-  ShowClauseNode,
-  ViewClauseNode,
-  ChartClauseNode,
-  PeriodClauseNode,
-  SizeClauseNode,
-  BinaryExpressionNode,
-  ExpressionNode,
-  LiteralNode,
-  IdentifierNode,
-  createQuery,
-  createWhereClause,
-  createShowClause,
-  createViewClause,
-  createChartClause,
-  createPeriodClause,
-  createSizeClause,
-  createBinaryExpression,
-  createLiteral,
-  createIdentifier,
-  createList,
-  createDateRange
-} from './ast';
+import { QueryNode } from './ast';
+import { parse as peggyParse, ParseError as PeggyParseError } from './generated-parser';
 
 export class ParseError extends Error {
-  constructor(
-    message: string,
-    public token: Token,
-    public expected?: string
-  ) {
-    super(`Parse error at line ${token.line}, column ${token.column}: ${message}`);
+  public line: number;
+  public column: number;
+  public expected?: string;
+
+  constructor(message: string, line: number = 1, column: number = 1, expected?: string) {
+    super(message);
     this.name = 'ParseError';
+    this.line = line;
+    this.column = column;
+    this.expected = expected;
   }
 }
 
-export class Parser {
-  private tokens: Token[];
-  private current = 0;
+export class QueryParser {
+  /**
+   * Parse a query string into an AST
+   * @param input - The query string to parse
+   * @returns The parsed query AST
+   * @throws ParseError on syntax errors
+   */
+  parse(input: string): QueryNode {
+    try {
+      // Clean up the input
+      const cleanInput = this.preprocessInput(input);
 
-  constructor(input: string) {
-    const tokenizer = new Tokenizer(input);
-    this.tokens = tokenizer.tokenize().filter(token =>
-      token.type !== TokenType.NEWLINE // Filter out newlines for easier parsing
-    );
-  }
+      // Parse using the generated Peggy parser
+      const ast = peggyParse(cleanInput);
 
-  parse(): QueryNode {
-    // Reset parser state for reusability
-    this.current = 0;
+      // Validate the resulting AST
+      this.validateAST(ast);
 
-    const clauses: ClauseNode[] = [];
-
-    while (!this.isAtEnd()) {
-      if (this.check(TokenType.EOF)) break;
-
-      const clause = this.parseClause();
-      if (clause) {
-        clauses.push(clause);
-      }
-    }
-
-    return createQuery(clauses);
-  }
-
-  private parseClause(): ClauseNode | null {
-    const token = this.peek();
-
-    switch (token.type) {
-      case TokenType.WHERE:
-        return this.parseWhereClause();
-      case TokenType.SHOW:
-        return this.parseShowClause();
-      case TokenType.VIEW:
-        return this.parseViewClause();
-      case TokenType.CHART:
-        return this.parseChartClause();
-      case TokenType.PERIOD:
-        return this.parsePeriodClause();
-      case TokenType.SIZE:
-        return this.parseSizeClause();
-      default:
-        throw new ParseError(`Unexpected token '${token.value}'`, token, 'clause keyword');
-    }
-  }
-
-  private parseWhereClause(): WhereClauseNode {
-    this.consume(TokenType.WHERE, "Expected 'WHERE'");
-
-    const conditions: BinaryExpressionNode[] = [];
-
-    // eslint-disable-next-line no-constant-condition
-    do {
-      const condition = this.parseBinaryExpression();
-      conditions.push(condition);
-
-      // Check for AND/OR (for future extension)
-      if (this.match(TokenType.AND, TokenType.OR)) {
-        // For now, we'll treat all conditions as AND
-        continue;
+      return ast;
+    } catch (error: any) {
+      if (error instanceof PeggyParseError) {
+        // Convert Peggy parse error to our format
+        const line = error.location?.start?.line || 1;
+        const column = error.location?.start?.column || 1;
+        throw new ParseError(error.message, line, column);
       }
 
-      break;
-    } while (true);
-
-    return createWhereClause(conditions);
+      // Re-throw other errors as-is
+      throw error;
+    }
   }
 
-  private parseShowClause(): ShowClauseNode {
-    this.consume(TokenType.SHOW, "Expected 'SHOW'");
+  /**
+   * Preprocess the input string to handle common formatting issues
+   */
+  private preprocessInput(input: string): string {
+    // Normalize line endings
+    let processed = input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    const fields: IdentifierNode[] = [];
+    // Remove excessive whitespace but preserve structure
+    processed = processed.replace(/[ \t]+/g, ' ').trim();
 
-    // eslint-disable-next-line no-constant-condition
-    do {
-      const field = this.parseIdentifier();
-      fields.push(field);
+    // Ensure there's a newline at the end for consistent parsing
+    if (processed && !processed.endsWith('\n')) {
+      processed += '\n';
+    }
 
-      if (this.match(TokenType.COMMA)) {
-        continue;
-      }
-
-      break;
-    } while (true);
-
-    return createShowClause(fields);
+    return processed;
   }
 
-  private parseViewClause(): ViewClauseNode {
-    this.consume(TokenType.VIEW, "Expected 'VIEW'");
-
-    // Accept both IDENTIFIER tokens and specific keyword tokens that could be view types
-    let viewToken: Token;
-    let viewType: string;
-
-    if (this.check(TokenType.IDENTIFIER)) {
-      viewToken = this.consume(TokenType.IDENTIFIER, "Expected view type");
-      viewType = viewToken.value.toLowerCase();
-    } else if (this.check(TokenType.CHART)) {
-      // Allow 'chart' keyword as a view type
-      viewToken = this.consume(TokenType.CHART, "Expected view type");
-      viewType = 'chart';
-    } else {
-      viewToken = this.peek();
-      throw new ParseError("Expected view type", viewToken, 'summary|chart|table|full');
+  /**
+   * Validate the generated AST for correctness
+   */
+  private validateAST(ast: QueryNode): void {
+    if (!ast || ast.type !== 'Query') {
+      throw new ParseError('Invalid query structure: root must be a Query node');
     }
 
-    if (!['summary', 'chart', 'table', 'full'].includes(viewType)) {
-      throw new ParseError(`Invalid view type '${viewType}'`, viewToken, 'summary|chart|table|full');
+    if (!Array.isArray(ast.clauses)) {
+      throw new ParseError('Invalid query structure: clauses must be an array');
     }
 
-    return createViewClause(viewType as ViewClauseNode['viewType']);
+    // Validate each clause
+    for (const clause of ast.clauses) {
+      this.validateClause(clause);
+    }
+
+    // Check for logical constraints
+    this.validateLogicalConstraints(ast);
   }
 
-  private parseChartClause(): ChartClauseNode {
-    this.consume(TokenType.CHART, "Expected 'CHART'");
-
-    const chartToken = this.consume(TokenType.IDENTIFIER, "Expected chart type");
-    const chartType = chartToken.value.toLowerCase();
-
-    if (!['trend', 'monthly', 'budget'].includes(chartType)) {
-      throw new ParseError(`Invalid chart type '${chartType}'`, chartToken, 'trend|monthly|budget');
+  /**
+   * Validate individual clauses
+   */
+  private validateClause(clause: any): void {
+    if (!clause || !clause.type) {
+      throw new ParseError('Invalid clause: missing type');
     }
 
-    return createChartClause(chartType as ChartClauseNode['chartType']);
-  }
-
-  private parsePeriodClause(): PeriodClauseNode {
-    this.consume(TokenType.PERIOD, "Expected 'PERIOD'");
-
-    const periodToken = this.consume(TokenType.IDENTIFIER, "Expected period type");
-    const period = periodToken.value.toLowerCase();
-
-    if (!['current-year', 'all-time', 'last-6-months', 'last-12-months'].includes(period)) {
-      throw new ParseError(`Invalid period '${period}'`, periodToken, 'current-year|all-time|last-6-months|last-12-months');
-    }
-
-    return createPeriodClause(period as PeriodClauseNode['period']);
-  }
-
-  private parseSizeClause(): SizeClauseNode {
-    this.consume(TokenType.SIZE, "Expected 'SIZE'");
-
-    const sizeToken = this.consume(TokenType.IDENTIFIER, "Expected size type");
-    const size = sizeToken.value.toLowerCase();
-
-    if (!['compact', 'normal', 'detailed'].includes(size)) {
-      throw new ParseError(`Invalid size '${size}'`, sizeToken, 'compact|normal|detailed');
-    }
-
-    return createSizeClause(size as SizeClauseNode['size']);
-  }
-
-  private parseBinaryExpression(): BinaryExpressionNode {
-    const left = this.parseExpression();
-
-    let operator: BinaryExpressionNode['operator'];
-
-    if (this.match(TokenType.EQUALS)) {
-      operator = '=';
-    } else if (this.match(TokenType.NOT_EQUALS)) {
-      operator = '!=';
-    } else if (this.match(TokenType.GREATER_THAN)) {
-      operator = '>';
-    } else if (this.match(TokenType.LESS_THAN)) {
-      operator = '<';
-    } else if (this.match(TokenType.GREATER_THAN_EQUALS)) {
-      operator = '>=';
-    } else if (this.match(TokenType.LESS_THAN_EQUALS)) {
-      operator = '<=';
-    } else if (this.match(TokenType.BETWEEN)) {
-      operator = 'BETWEEN';
-    } else if (this.match(TokenType.IN)) {
-      operator = 'IN';
-    } else {
-      const token = this.peek();
-      throw new ParseError(`Expected comparison operator`, token, '=|!=|>|<|>=|<=|BETWEEN|IN');
-    }
-
-    let right: ExpressionNode | ExpressionNode[];
-
-    if (operator === 'BETWEEN') {
-      const start = this.parseExpression();
-      this.consume(TokenType.AND, "Expected 'AND' in BETWEEN expression");
-      const end = this.parseExpression();
-
-      // Create a date range node for BETWEEN
-      if (start.type === 'Literal' && end.type === 'Literal') {
-        right = createDateRange(start as LiteralNode, end as LiteralNode);
-      } else {
-        throw new ParseError(`BETWEEN requires literal values`, this.previous());
-      }
-    } else if (operator === 'IN') {
-      this.consume(TokenType.LEFT_PAREN, "Expected '(' after IN");
-      const items: ExpressionNode[] = [];
-
-      // eslint-disable-next-line no-constant-condition
-      do {
-        items.push(this.parseExpression());
-        if (this.match(TokenType.COMMA)) {
-          continue;
-        }
+    switch (clause.type) {
+      case 'WhereClause':
+        this.validateWhereClause(clause);
         break;
-      } while (true);
-
-      this.consume(TokenType.RIGHT_PAREN, "Expected ')' after IN list");
-      right = createList(items);
-    } else {
-      right = this.parseExpression();
+      case 'ShowClause':
+        this.validateShowClause(clause);
+        break;
+      case 'ViewClause':
+        this.validateViewClause(clause);
+        break;
+      case 'ChartClause':
+        this.validateChartClause(clause);
+        break;
+      case 'PeriodClause':
+        this.validatePeriodClause(clause);
+        break;
+      case 'SizeClause':
+        this.validateSizeClause(clause);
+        break;
+      default:
+        throw new ParseError(`Unknown clause type: ${clause.type}`);
     }
-
-    return createBinaryExpression(left, operator, right);
   }
 
-  private parseExpression(): ExpressionNode {
-    if (this.check(TokenType.STRING)) {
-      return this.parseLiteral('string');
+  private validateWhereClause(clause: any): void {
+    if (!Array.isArray(clause.conditions)) {
+      throw new ParseError('WHERE clause must have conditions array');
     }
 
-    if (this.check(TokenType.DATE)) {
-      return this.parseLiteral('date');
-    }
+    for (const condition of clause.conditions) {
+      if (!condition || condition.type !== 'BinaryExpression') {
+        throw new ParseError('WHERE conditions must be binary expressions');
+      }
 
-    if (this.check(TokenType.NUMBER)) {
-      return this.parseLiteral('number');
-    }
-
-    if (this.check(TokenType.IDENTIFIER)) {
-      return this.parseIdentifier();
-    }
-
-    const token = this.peek();
-    throw new ParseError(`Unexpected token '${token.value}'`, token, 'literal or identifier');
-  }
-
-  private parseLiteral(dataType: 'string' | 'number' | 'date'): LiteralNode {
-    const token = this.advance();
-    let value: string | number = token.value;
-
-    if (dataType === 'number') {
-      value = parseFloat(token.value);
-      if (isNaN(value)) {
-        throw new ParseError(`Invalid number '${token.value}'`, token);
+      // Validate field names
+      if (condition.left?.type === 'Identifier') {
+        const validFields = ['year', 'month', 'project', 'date', 'hours', 'budget'];
+        if (!validFields.includes(condition.left.name)) {
+          throw new ParseError(`Unknown field: ${condition.left.name}. Valid fields: ${validFields.join(', ')}`);
+        }
       }
     }
-
-    return createLiteral(value, dataType);
   }
 
-  private parseIdentifier(): IdentifierNode {
-    const token = this.consume(TokenType.IDENTIFIER, "Expected identifier");
-    return createIdentifier(token.value);
-  }
+  private validateShowClause(clause: any): void {
+    if (!Array.isArray(clause.fields)) {
+      throw new ParseError('SHOW clause must have fields array');
+    }
 
-  // Utility methods for token management
-  private match(...types: TokenType[]): boolean {
-    for (const type of types) {
-      if (this.check(type)) {
-        this.advance();
-        return true;
+    const validFields = ['hours', 'invoiced', 'progress', 'utilization', 'remaining'];
+    for (const field of clause.fields) {
+      if (!field || field.type !== 'Identifier') {
+        throw new ParseError('SHOW fields must be identifiers');
+      }
+      if (!validFields.includes(field.name)) {
+        throw new ParseError(`Unknown SHOW field: ${field.name}. Valid fields: ${validFields.join(', ')}`);
       }
     }
-    return false;
   }
 
-  private check(type: TokenType): boolean {
-    if (this.isAtEnd()) return false;
-    return this.peek().type === type;
+  private validateViewClause(clause: any): void {
+    const validViews = ['summary', 'chart', 'table', 'full'];
+    if (!validViews.includes(clause.viewType)) {
+      throw new ParseError(`Invalid view type: ${clause.viewType}. Valid types: ${validViews.join(', ')}`);
+    }
   }
 
-  private advance(): Token {
-    if (!this.isAtEnd()) this.current++;
-    return this.previous();
+  private validateChartClause(clause: any): void {
+    const validCharts = ['trend', 'monthly', 'budget'];
+    if (!validCharts.includes(clause.chartType)) {
+      throw new ParseError(`Invalid chart type: ${clause.chartType}. Valid types: ${validCharts.join(', ')}`);
+    }
   }
 
-  private isAtEnd(): boolean {
-    return this.peek().type === TokenType.EOF;
+  private validatePeriodClause(clause: any): void {
+    const validPeriods = ['current-year', 'all-time', 'last-6-months', 'last-12-months'];
+    if (!validPeriods.includes(clause.period)) {
+      throw new ParseError(`Invalid period: ${clause.period}. Valid periods: ${validPeriods.join(', ')}`);
+    }
   }
 
-  private peek(): Token {
-    return this.tokens[this.current];
+  private validateSizeClause(clause: any): void {
+    const validSizes = ['compact', 'normal', 'detailed'];
+    if (!validSizes.includes(clause.size)) {
+      throw new ParseError(`Invalid size: ${clause.size}. Valid sizes: ${validSizes.join(', ')}`);
+    }
   }
 
-  private previous(): Token {
-    return this.tokens[this.current - 1];
+  /**
+   * Validate logical constraints across clauses
+   */
+  private validateLogicalConstraints(ast: QueryNode): void {
+    const clauseTypes = ast.clauses.map(c => c.type);
+
+    // Check for duplicate clause types (most should be unique)
+    const duplicates = clauseTypes.filter((type, index) =>
+      clauseTypes.indexOf(type) !== index &&
+      !['WhereClause'].includes(type) // WHERE can have multiple conditions, but we handle that differently
+    );
+
+    if (duplicates.length > 0) {
+      throw new ParseError(`Duplicate clause types found: ${duplicates.join(', ')}. Each clause type should appear only once.`);
+    }
+
+    // CHART clause only makes sense with VIEW chart or VIEW full
+    const hasChartClause = clauseTypes.includes('ChartClause');
+    const viewClause = ast.clauses.find(c => c.type === 'ViewClause') as any;
+
+    if (hasChartClause && viewClause && !['chart', 'full'].includes(viewClause.viewType)) {
+      throw new ParseError('CHART clause can only be used with VIEW chart or VIEW full');
+    }
   }
 
-  private consume(type: TokenType, message: string): Token {
-    if (this.check(type)) return this.advance();
-
-    const token = this.peek();
-    throw new ParseError(message, token, type);
+  /**
+   * Quick validation check without full parsing
+   * Useful for syntax highlighting or real-time feedback
+   */
+  isValid(input: string): boolean {
+    try {
+      this.parse(input);
+      return true;
+    } catch {
+      return false;
+    }
   }
+
+  /**
+   * Get syntax errors without throwing
+   * Useful for providing feedback in editors
+   */
+  getErrors(input: string): ParseError[] {
+    try {
+      this.parse(input);
+      return [];
+    } catch (error) {
+      if (error instanceof ParseError) {
+        return [error];
+      }
+      return [new ParseError(error.message || 'Unknown parse error')];
+    }
+  }
+}
+
+// Export a default instance for convenience
+export const queryParser = new QueryParser();
+
+// Convenience function that matches the old parser interface
+export function parseQuery(input: string): QueryNode {
+  return queryParser.parse(input);
 }

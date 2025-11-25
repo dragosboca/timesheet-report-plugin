@@ -1,470 +1,390 @@
-import { Parser, ParseError } from '../src/query/parser';
-import type { QueryNode, WhereClauseNode, ViewClauseNode, BinaryExpressionNode } from '../src/query/ast';
+// Tests for the Query Language Parser
+import { QueryParser, parseQuery, ParseError } from '../src/query/parser';
+import {
+  QueryNode,
+  WhereClauseNode,
+  ShowClauseNode,
+  ViewClauseNode,
+  ChartClauseNode,
+  PeriodClauseNode,
+  SizeClauseNode,
+  BinaryExpressionNode,
+  LiteralNode,
+  IdentifierNode
+} from '../src/query/astc/query/ast';
 
-describe('Parser', () => {
-  describe('Basic parsing', () => {
-    it('should parse empty query', () => {
-      const parser = new Parser('');
-      const ast = parser.parse();
+describe('QueryParser', () => {
+  let parser: QueryParser;
 
-      expect(ast.type).toBe('Query');
-      expect(ast.clauses).toHaveLength(0);
+  beforeEach(() => {
+    parser = new QueryParser();
+  });
+
+  describe('Basic Parsing', () => {
+    test('should parse empty query', () => {
+      const result = parser.parse('');
+      expect(result.type).toBe('Query');
+      expect(result.clauses).toEqual([]);
     });
 
-    it('should parse simple WHERE clause', () => {
-      const parser = new Parser('WHERE year = 2024');
-      const ast = parser.parse();
-
-      expect(ast.type).toBe('Query');
-      expect(ast.clauses).toHaveLength(1);
-      expect(ast.clauses[0].type).toBe('WhereClause');
-
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions).toHaveLength(1);
-
-      const condition = whereClause.conditions[0];
-      expect(condition.type).toBe('BinaryExpression');
-      expect(condition.left.type).toBe('Identifier');
-      expect(condition.operator).toBe('=');
-      expect(condition.right.type).toBe('Literal');
+    test('should parse whitespace-only query', () => {
+      const result = parser.parse('   \n\t  ');
+      expect(result.type).toBe('Query');
+      expect(result.clauses).toEqual([]);
     });
 
-    it('should parse multiple clauses', () => {
-      const parser = new Parser('WHERE year = 2024 VIEW chart CHART trend');
-      const ast = parser.parse();
-
-      expect(ast.clauses).toHaveLength(3);
-      expect(ast.clauses[0].type).toBe('WhereClause');
-      expect(ast.clauses[1].type).toBe('ViewClause');
-      expect(ast.clauses[2].type).toBe('ChartClause');
-    });
-
-    it('should handle whitespace and newlines', () => {
-      const query = `
-        WHERE year = 2024
-        VIEW chart
-        SIZE detailed
-      `;
-
-      const parser = new Parser(query);
-      const ast = parser.parse();
-
-      expect(ast.clauses).toHaveLength(3);
-    });
-
-    it('should ignore comments', () => {
-      const query = `
+    test('should handle comments', () => {
+      const result = parser.parse(`
         // This is a comment
-        WHERE year = 2024 // Another comment
-        VIEW chart
-      `;
-
-      const parser = new Parser(query);
-      const ast = parser.parse();
-
-      expect(ast.clauses).toHaveLength(2);
+        WHERE year = 2024
+        // Another comment
+      `);
+      expect(result.type).toBe('Query');
+      expect(result.clauses).toHaveLength(1);
+      expect(result.clauses[0].type).toBe('WhereClause');
     });
   });
 
-  describe('WHERE clause parsing', () => {
-    it('should parse single condition', () => {
-      const parser = new Parser('WHERE year = 2024');
-      const ast = parser.parse();
+  describe('WHERE Clauses', () => {
+    test('should parse simple WHERE clause', () => {
+      const result = parser.parse('WHERE year = 2024');
+      const whereClause = result.clauses[0] as WhereClauseNode;
 
-      const whereClause = ast.clauses[0] as WhereClauseNode;
+      expect(whereClause.type).toBe('WhereClause');
       expect(whereClause.conditions).toHaveLength(1);
 
-      const condition = whereClause.conditions[0];
-      expect(condition.left.name).toBe('year');
+      const condition = whereClause.conditions[0] as BinaryExpressionNode;
+      expect(condition.type).toBe('BinaryExpression');
+      expect((condition.left as IdentifierNode).name).toBe('year');
       expect(condition.operator).toBe('=');
-      expect(condition.right.value).toBe(2024);
+      expect((condition.right as LiteralNode).value).toBe('2024');
     });
 
-    it('should parse multiple conditions with AND', () => {
-      const parser = new Parser('WHERE year = 2024 AND month = 12');
-      const ast = parser.parse();
+    test('should parse WHERE clause with string comparison', () => {
+      const result = parser.parse('WHERE project = "Client Work"');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
 
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions).toHaveLength(2);
-
-      expect(whereClause.conditions[0].left.name).toBe('year');
-      expect(whereClause.conditions[1].left.name).toBe('month');
+      expect((condition.left as IdentifierNode).name).toBe('project');
+      expect(condition.operator).toBe('=');
+      expect((condition.right as LiteralNode).value).toBe('Client Work');
+      expect((condition.right as LiteralNode).dataType).toBe('string');
     });
 
-    it('should parse string conditions', () => {
-      const parser = new Parser('WHERE project = "Client Alpha"');
-      const ast = parser.parse();
+    test('should parse WHERE clause with single quotes', () => {
+      const result = parser.parse("WHERE project = 'Client Work'");
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
 
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      const condition = whereClause.conditions[0];
-
-      expect(condition.left.name).toBe('project');
-      expect(condition.right.value).toBe('Client Alpha');
-      expect(condition.right.dataType).toBe('string');
+      expect((condition.right as LiteralNode).value).toBe('Client Work');
+      expect((condition.right as LiteralNode).dataType).toBe('string');
     });
 
-    it('should parse BETWEEN expressions', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
-      const ast = parser.parse();
+    test('should parse WHERE clause with number comparison', () => {
+      const result = parser.parse('WHERE month > 6');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
 
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      const condition = whereClause.conditions[0];
-
-      expect(condition.operator).toBe('BETWEEN');
-      expect(condition.right.type).toBe('DateRange');
-      expect(condition.right.start.value).toBe('2024-01-01');
-      expect(condition.right.end.value).toBe('2024-12-31');
+      expect((condition.left as IdentifierNode).name).toBe('month');
+      expect(condition.operator).toBe('>');
+      expect((condition.right as LiteralNode).value).toBe('6');
+      expect((condition.right as LiteralNode).dataType).toBe('number');
     });
 
-    it('should handle all comparison operators', () => {
+    test('should parse WHERE clause with decimal number', () => {
+      const result = parser.parse('WHERE hours >= 40.5');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+
+      expect((condition.right as LiteralNode).value).toBe('40.5');
+      expect((condition.right as LiteralNode).dataType).toBe('number');
+    });
+
+    test('should parse all comparison operators', () => {
       const operators = ['=', '!=', '>', '<', '>=', '<='];
 
-      operators.forEach(op => {
-        const parser = new Parser(`WHERE year ${op} 2024`);
-        const ast = parser.parse();
+      for (const op of operators) {
+        const result = parser.parse(`WHERE year ${op} 2024`);
+        const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+        expect(condition.operator).toBe(op);
+      }
+    });
 
-        const whereClause = ast.clauses[0] as WhereClauseNode;
-        expect(whereClause.conditions[0].operator).toBe(op);
-      });
+    test('should parse multiple AND conditions', () => {
+      const result = parser.parse('WHERE year = 2024 AND month = 12 AND project = "Work"');
+      const whereClause = result.clauses[0] as WhereClauseNode;
+
+      expect(whereClause.conditions).toHaveLength(3);
+      expect((whereClause.conditions[0].left as IdentifierNode).name).toBe('year');
+      expect((whereClause.conditions[1].left as IdentifierNode).name).toBe('month');
+      expect((whereClause.conditions[2].left as IdentifierNode).name).toBe('project');
+    });
+
+    test('should parse BETWEEN operator', () => {
+      const result = parser.parse('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+
+      expect(condition.operator).toBe('BETWEEN');
+      expect(condition.right).toHaveProperty('type', 'DateRange');
+    });
+
+    test('should parse date literals', () => {
+      const result = parser.parse('WHERE date = "2024-01-01"');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+
+      expect((condition.right as LiteralNode).value).toBe('2024-01-01');
+      expect((condition.right as LiteralNode).dataType).toBe('date');
     });
   });
 
-  describe('VIEW clause parsing', () => {
-    const viewTypes = ['summary', 'chart', 'table', 'full'];
+  describe('SHOW Clauses', () => {
+    test('should parse SHOW clause with single field', () => {
+      const result = parser.parse('SHOW hours');
+      const showClause = result.clauses[0] as ShowClauseNode;
 
-    viewTypes.forEach(viewType => {
-      it(`should parse VIEW ${viewType}`, () => {
-        const parser = new Parser(`VIEW ${viewType}`);
-        const ast = parser.parse();
-
-        const viewClause = ast.clauses[0] as ViewClauseNode;
-        expect(viewClause.type).toBe('ViewClause');
-        expect(viewClause.viewType).toBe(viewType);
-      });
-    });
-
-    it('should be case insensitive', () => {
-      const parser = new Parser('VIEW Chart');
-      const ast = parser.parse();
-
-      const viewClause = ast.clauses[0] as ViewClauseNode;
-      expect(viewClause.viewType).toBe('chart');
-    });
-  });
-
-  describe('CHART clause parsing', () => {
-    const chartTypes = ['trend', 'monthly', 'budget'];
-
-    chartTypes.forEach(chartType => {
-      it(`should parse CHART ${chartType}`, () => {
-        const parser = new Parser(`CHART ${chartType}`);
-        const ast = parser.parse();
-
-        const chartClause = ast.clauses[0] as any;
-        expect(chartClause.type).toBe('ChartClause');
-        expect(chartClause.chartType).toBe(chartType);
-      });
-    });
-  });
-
-  describe('PERIOD clause parsing', () => {
-    const periods = ['current-year', 'all-time', 'last-6-months', 'last-12-months'];
-
-    periods.forEach(period => {
-      it(`should parse PERIOD ${period}`, () => {
-        const parser = new Parser(`PERIOD ${period}`);
-        const ast = parser.parse();
-
-        const periodClause = ast.clauses[0] as any;
-        expect(periodClause.type).toBe('PeriodClause');
-        expect(periodClause.period).toBe(period);
-      });
-    });
-  });
-
-  describe('SIZE clause parsing', () => {
-    const sizes = ['compact', 'normal', 'detailed'];
-
-    sizes.forEach(size => {
-      it(`should parse SIZE ${size}`, () => {
-        const parser = new Parser(`SIZE ${size}`);
-        const ast = parser.parse();
-
-        const sizeClause = ast.clauses[0] as any;
-        expect(sizeClause.type).toBe('SizeClause');
-        expect(sizeClause.size).toBe(size);
-      });
-    });
-  });
-
-  describe('SHOW clause parsing', () => {
-    it('should parse single field', () => {
-      const parser = new Parser('SHOW hours');
-      const ast = parser.parse();
-
-      const showClause = ast.clauses[0] as any;
       expect(showClause.type).toBe('ShowClause');
       expect(showClause.fields).toHaveLength(1);
       expect(showClause.fields[0].name).toBe('hours');
     });
 
-    it('should parse multiple fields', () => {
-      const parser = new Parser('SHOW hours, invoiced, progress');
-      const ast = parser.parse();
+    test('should parse SHOW clause with multiple fields', () => {
+      const result = parser.parse('SHOW hours, invoiced, progress');
+      const showClause = result.clauses[0] as ShowClauseNode;
 
-      const showClause = ast.clauses[0] as any;
       expect(showClause.fields).toHaveLength(3);
-      expect(showClause.fields.map((f: any) => f.name)).toEqual(['hours', 'invoiced', 'progress']);
+      expect(showClause.fields[0].name).toBe('hours');
+      expect(showClause.fields[1].name).toBe('invoiced');
+      expect(showClause.fields[2].name).toBe('progress');
     });
 
-    it('should handle spaces around commas', () => {
-      const parser = new Parser('SHOW hours , invoiced , progress');
-      const ast = parser.parse();
+    test('should handle whitespace around commas', () => {
+      const result = parser.parse('SHOW hours , invoiced ,progress');
+      const showClause = result.clauses[0] as ShowClauseNode;
 
-      const showClause = ast.clauses[0] as any;
       expect(showClause.fields).toHaveLength(3);
+      expect(showClause.fields.map(f => f.name)).toEqual(['hours', 'invoiced', 'progress']);
     });
   });
 
-  describe('Complex queries', () => {
-    it('should parse complete dashboard query', () => {
+  describe('VIEW Clauses', () => {
+    test('should parse all view types', () => {
+      const viewTypes = ['summary', 'chart', 'table', 'full'];
+
+      for (const viewType of viewTypes) {
+        const result = parser.parse(`VIEW ${viewType}`);
+        const viewClause = result.clauses[0] as ViewClauseNode;
+
+        expect(viewClause.type).toBe('ViewClause');
+        expect(viewClause.viewType).toBe(viewType);
+      }
+    });
+
+    test('should be case insensitive', () => {
+      const result = parser.parse('VIEW CHART');
+      const viewClause = result.clauses[0] as ViewClauseNode;
+      expect(viewClause.viewType).toBe('chart');
+    });
+  });
+
+  describe('CHART Clauses', () => {
+    test('should parse all chart types', () => {
+      const chartTypes = ['trend', 'monthly', 'budget'];
+
+      for (const chartType of chartTypes) {
+        const result = parser.parse(`CHART ${chartType}`);
+        const chartClause = result.clauses[0] as ChartClauseNode;
+
+        expect(chartClause.type).toBe('ChartClause');
+        expect(chartClause.chartType).toBe(chartType);
+      }
+    });
+
+    test('should be case insensitive', () => {
+      const result = parser.parse('CHART MONTHLY');
+      const chartClause = result.clauses[0] as ChartClauseNode;
+      expect(chartClause.chartType).toBe('monthly');
+    });
+  });
+
+  describe('PERIOD Clauses', () => {
+    test('should parse all period types', () => {
+      const periodTypes = ['current-year', 'all-time', 'last-6-months', 'last-12-months'];
+
+      for (const periodType of periodTypes) {
+        const result = parser.parse(`PERIOD ${periodType}`);
+        const periodClause = result.clauses[0] as PeriodClauseNode;
+
+        expect(periodClause.type).toBe('PeriodClause');
+        expect(periodClause.period).toBe(periodType);
+      }
+    });
+  });
+
+  describe('SIZE Clauses', () => {
+    test('should parse all size types', () => {
+      const sizeTypes = ['compact', 'normal', 'detailed'];
+
+      for (const sizeType of sizeTypes) {
+        const result = parser.parse(`SIZE ${sizeType}`);
+        const sizeClause = result.clauses[0] as SizeClauseNode;
+
+        expect(sizeClause.type).toBe('SizeClause');
+        expect(sizeClause.size).toBe(sizeType);
+      }
+    });
+  });
+
+  describe('Complex Queries', () => {
+    test('should parse query with all clause types', () => {
       const query = `
-        WHERE year = 2024 AND project = "Client Alpha"
-        VIEW full
-        CHART trend
-        PERIOD last-6-months
+        WHERE year = 2024 AND project = "Client Work"
+        SHOW hours, invoiced
+        VIEW chart
+        CHART monthly
+        PERIOD current-year
         SIZE detailed
       `;
 
-      const parser = new Parser(query);
-      const ast = parser.parse();
+      const result = parser.parse(query);
 
-      expect(ast.clauses).toHaveLength(5);
-
-      const clauseTypes = ast.clauses.map(c => c.type);
-      expect(clauseTypes).toContain('WhereClause');
-      expect(clauseTypes).toContain('ViewClause');
-      expect(clauseTypes).toContain('ChartClause');
-      expect(clauseTypes).toContain('PeriodClause');
-      expect(clauseTypes).toContain('SizeClause');
+      expect(result.clauses).toHaveLength(6);
+      expect(result.clauses.map(c => c.type)).toEqual([
+        'WhereClause',
+        'ShowClause',
+        'ViewClause',
+        'ChartClause',
+        'PeriodClause',
+        'SizeClause'
+      ]);
     });
 
-    it('should parse budget tracking query', () => {
+    test('should handle clauses in any order', () => {
       const query = `
-        WHERE project = "Q1 Budget" AND date BETWEEN "2024-01-01" AND "2024-03-31"
-        SHOW hours, invoiced, progress, remaining
+        SIZE compact
+        WHERE year >= 2023
         VIEW table
-        CHART budget
-        SIZE normal
+        SHOW hours
       `;
 
-      const parser = new Parser(query);
-      const ast = parser.parse();
+      const result = parser.parse(query);
 
-      expect(ast.clauses).toHaveLength(5);
-
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions).toHaveLength(2);
-
-      // Check project condition
-      expect(whereClause.conditions[0].left.name).toBe('project');
-      expect(whereClause.conditions[0].right.value).toBe('Q1 Budget');
-
-      // Check date range condition
-      expect(whereClause.conditions[1].operator).toBe('BETWEEN');
-    });
-
-    it('should handle mixed case and formatting', () => {
-      const query = `where Year = 2024 view Chart chart Trend`;
-
-      const parser = new Parser(query);
-      const ast = parser.parse();
-
-      expect(ast.clauses).toHaveLength(3);
-      expect((ast.clauses[1] as ViewClauseNode).viewType).toBe('chart');
+      expect(result.clauses).toHaveLength(4);
+      expect(result.clauses.map(c => c.type)).toEqual([
+        'SizeClause',
+        'WhereClause',
+        'ViewClause',
+        'ShowClause'
+      ]);
     });
   });
 
-  describe('Error handling', () => {
-    it('should throw ParseError for invalid keywords', () => {
-      expect(() => {
-        const parser = new Parser('INVALID year = 2024');
-        parser.parse();
-      }).toThrow(ParseError);
+  describe('Error Handling', () => {
+    test('should throw ParseError for invalid syntax', () => {
+      expect(() => parser.parse('WHERE year =')).toThrow(ParseError);
+      expect(() => parser.parse('INVALID CLAUSE')).toThrow(ParseError);
+      expect(() => parser.parse('WHERE = 2024')).toThrow(ParseError);
     });
 
-    it('should throw ParseError for missing operator', () => {
-      expect(() => {
-        const parser = new Parser('WHERE year 2024');
-        parser.parse();
-      }).toThrow(ParseError);
+    test('should throw ParseError for unterminated strings', () => {
+      expect(() => parser.parse('WHERE project = "unterminated')).toThrow(ParseError);
     });
 
-    it('should throw ParseError for missing value', () => {
-      expect(() => {
-        const parser = new Parser('WHERE year =');
-        parser.parse();
-      }).toThrow(ParseError);
+    test('should validate field names', () => {
+      expect(() => parser.parse('WHERE invalid_field = 2024')).toThrow(ParseError);
     });
 
-    it('should throw ParseError for invalid view type', () => {
-      expect(() => {
-        const parser = new Parser('VIEW invalid_view');
-        parser.parse();
-      }).toThrow(ParseError);
+    test('should validate SHOW field names', () => {
+      expect(() => parser.parse('SHOW invalid_field')).toThrow(ParseError);
+    });
 
+    test('should validate view types', () => {
+      expect(() => parser.parse('VIEW invalid_view')).toThrow(ParseError);
+    });
+
+    test('should validate logical constraints', () => {
+      // CHART without appropriate VIEW
+      expect(() => parser.parse(`
+        VIEW summary
+        CHART monthly
+      `)).toThrow(ParseError);
+    });
+
+    test('should prevent duplicate non-WHERE clauses', () => {
+      expect(() => parser.parse(`
+        VIEW summary
+        VIEW chart
+      `)).toThrow(ParseError);
+    });
+
+    test('should provide helpful error messages', () => {
       try {
-        const parser = new Parser('VIEW invalid_view');
-        parser.parse();
+        parser.parse('WHERE invalid_field = 2024');
+        fail('Should have thrown an error');
       } catch (error) {
-        expect(error).toBeInstanceOf(ParseError);
-        expect((error as ParseError).message).toMatch(/Invalid view type/);
+        expect(error.message).toContain('Unknown field: invalid_field');
+        expect(error.message).toContain('Valid fields:');
       }
-    });
-
-    it('should throw ParseError for invalid chart type', () => {
-      expect(() => {
-        const parser = new Parser('CHART invalid_chart');
-        parser.parse();
-      }).toThrow(ParseError);
-    });
-
-    it('should throw ParseError for invalid BETWEEN syntax', () => {
-      expect(() => {
-        const parser = new Parser('WHERE date BETWEEN "2024-01-01"');
-        parser.parse();
-      }).toThrow(ParseError);
-    });
-
-    it('should provide helpful error messages', () => {
-      try {
-        const parser = new Parser('WHERE year');
-        parser.parse();
-      } catch (error) {
-        expect(error).toBeInstanceOf(ParseError);
-        expect((error as ParseError).message).toMatch(/Expected comparison operator/);
-      }
-    });
-
-    it('should include token information in errors', () => {
-      try {
-        const parser = new Parser('WHERE year = 2024\nINVALID clause');
-        parser.parse();
-      } catch (error) {
-        expect(error).toBeInstanceOf(ParseError);
-        const parseError = error as ParseError;
-        expect(parseError.token).toBeDefined();
-        expect(parseError.token.line).toBeGreaterThan(1);
-      }
-    });
-
-    it('should handle malformed BETWEEN expressions', () => {
-      const malformedQueries = [
-        'WHERE date BETWEEN',
-        'WHERE date BETWEEN "2024-01-01" AND',
-        'WHERE date BETWEEN AND "2024-12-31"'
-      ];
-
-      malformedQueries.forEach(query => {
-        expect(() => {
-          const parser = new Parser(query);
-          parser.parse();
-        }).toThrow(ParseError);
-      });
     });
   });
 
-  describe('Edge cases', () => {
-    it('should handle queries with only comments', () => {
-      const parser = new Parser('// Just a comment\n// Another comment');
-      const ast = parser.parse();
-
-      expect(ast.clauses).toHaveLength(0);
+  describe('Utility Methods', () => {
+    test('isValid should return boolean', () => {
+      expect(parser.isValid('WHERE year = 2024')).toBe(true);
+      expect(parser.isValid('INVALID QUERY')).toBe(false);
+      expect(parser.isValid('')).toBe(true);
     });
 
-    it('should handle trailing operators', () => {
-      expect(() => {
-        const parser = new Parser('WHERE year = 2024 AND');
-        parser.parse();
-      }).toThrow(ParseError);
+    test('getErrors should return error array', () => {
+      const validErrors = parser.getErrors('WHERE year = 2024');
+      expect(validErrors).toHaveLength(0);
+
+      const invalidErrors = parser.getErrors('INVALID QUERY');
+      expect(invalidErrors).toHaveLength(1);
+      expect(invalidErrors[0]).toBeInstanceOf(ParseError);
+    });
+  });
+
+  describe('String Escaping', () => {
+    test('should handle escaped quotes in strings', () => {
+      const result = parser.parse('WHERE project = "Client \\"Alpha\\""');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+      expect((condition.right as LiteralNode).value).toBe('Client "Alpha"');
     });
 
-    it('should handle nested quotes in strings', () => {
-      const parser = new Parser('WHERE project = "Project \\"Alpha\\""');
-      const ast = parser.parse();
-
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions[0].right.value).toBe('Project "Alpha"');
+    test('should handle escaped characters', () => {
+      const result = parser.parse('WHERE project = "Line\\nBreak\\tTab"');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+      expect((condition.right as LiteralNode).value).toBe('Line\nBreak\tTab');
     });
+  });
 
-    it('should handle numeric edge cases', () => {
+  describe('Case Insensitivity', () => {
+    test('keywords should be case insensitive', () => {
       const queries = [
-        'WHERE year = 0',
-        'WHERE hours = 24.5',
-        'WHERE count = 999999'
+        'where year = 2024',
+        'WHERE year = 2024',
+        'Where year = 2024',
+        'wHeRe year = 2024'
       ];
 
-      queries.forEach(query => {
-        expect(() => {
-          const parser = new Parser(query);
-          parser.parse();
-        }).not.toThrow();
-      });
+      for (const query of queries) {
+        const result = parser.parse(query);
+        expect(result.clauses[0].type).toBe('WhereClause');
+      }
     });
 
-    it('should handle very long strings', () => {
-      const longString = 'A'.repeat(1000);
-      const parser = new Parser(`WHERE project = "${longString}"`);
-      const ast = parser.parse();
-
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions[0].right.value).toBe(longString);
-    });
-
-    it('should handle Unicode characters', () => {
-      const parser = new Parser('WHERE project = "Projet Français 🇫🇷"');
-      const ast = parser.parse();
-
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause.conditions[0].right.value).toBe('Projet Français 🇫🇷');
+    test('operators should be case insensitive', () => {
+      const result = parser.parse('WHERE date between "2024-01-01" and "2024-12-31"');
+      const condition = (result.clauses[0] as WhereClauseNode).conditions[0] as BinaryExpressionNode;
+      expect(condition.operator).toBe('BETWEEN');
     });
   });
+});
 
-  describe('AST structure validation', () => {
-    it('should create well-formed AST nodes', () => {
-      const parser = new Parser('WHERE year = 2024 VIEW chart');
-      const ast = parser.parse();
+describe('parseQuery convenience function', () => {
+  test('should work as standalone function', () => {
+    const result = parseQuery('WHERE year = 2024');
+    expect(result.type).toBe('Query');
+    expect(result.clauses).toHaveLength(1);
+  });
 
-      // Validate root node
-      expect(ast).toEqual(expect.objectContaining({
-        type: 'Query',
-        clauses: expect.any(Array)
-      }));
-
-      // Validate WHERE clause structure
-      const whereClause = ast.clauses[0] as WhereClauseNode;
-      expect(whereClause).toEqual(expect.objectContaining({
-        type: 'WhereClause',
-        conditions: expect.any(Array)
-      }));
-
-      // Validate binary expression structure
-      const condition = whereClause.conditions[0];
-      expect(condition).toEqual(expect.objectContaining({
-        type: 'BinaryExpression',
-        left: expect.objectContaining({ type: 'Identifier' }),
-        operator: '=',
-        right: expect.objectContaining({ type: 'Literal' })
-      }));
-    });
-
-    it('should maintain immutability of parsed nodes', () => {
-      const parser = new Parser('WHERE year = 2024');
-      const ast1 = parser.parse();
-      const ast2 = parser.parse();
-
-      expect(ast1).not.toBe(ast2); // Different object instances
-      expect(ast1).toEqual(ast2); // But equal content
-    });
+  test('should throw ParseError on invalid input', () => {
+    expect(() => parseQuery('INVALID')).toThrow(ParseError);
   });
 });

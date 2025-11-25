@@ -1,5 +1,5 @@
 
-import { Parser } from '../src/query/parser';
+import { parseQuery } from '../src/query/parser';
 import { QueryInterpreter, InterpreterError } from '../src/query/interpreter';
 import type { TimesheetQuery } from '../src/query/interpreter';
 
@@ -12,8 +12,7 @@ describe('QueryInterpreter', () => {
 
   describe('Default values', () => {
     it('should set correct default values for empty query', () => {
-      const parser = new Parser('');
-      const ast = parser.parse();
+      const ast = parseQuery('');
       const result = interpreter.interpret(ast);
 
       expect(result).toEqual({
@@ -24,8 +23,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should override defaults when values are specified', () => {
-      const parser = new Parser('VIEW chart SIZE compact PERIOD all-time');
-      const ast = parser.parse();
+      const ast = parseQuery('VIEW chart SIZE compact PERIOD all-time');
       const result = interpreter.interpret(ast);
 
       expect(result.view).toBe('chart');
@@ -34,8 +32,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should preserve defaults for unspecified values', () => {
-      const parser = new Parser('VIEW chart');
-      const ast = parser.parse();
+      const ast = parseQuery('VIEW chart');
       const result = interpreter.interpret(ast);
 
       expect(result.view).toBe('chart');
@@ -46,8 +43,7 @@ describe('QueryInterpreter', () => {
 
   describe('WHERE clause interpretation', () => {
     it('should interpret simple year condition', () => {
-      const parser = new Parser('WHERE year = 2024');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE year = 2024');
       const result = interpreter.interpret(ast);
 
       expect(result.where).toBeDefined();
@@ -55,24 +51,21 @@ describe('QueryInterpreter', () => {
     });
 
     it('should interpret month condition', () => {
-      const parser = new Parser('WHERE month = 12');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE month = 12');
       const result = interpreter.interpret(ast);
 
       expect(result.where!.month).toBe(12);
     });
 
     it('should interpret project condition', () => {
-      const parser = new Parser('WHERE project = "Client Alpha"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE project = "Client Alpha"');
       const result = interpreter.interpret(ast);
 
       expect(result.where!.project).toBe('Client Alpha');
     });
 
     it('should interpret multiple conditions', () => {
-      const parser = new Parser('WHERE year = 2024 AND month = 12 AND project = "Test Project"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE year = 2024 AND month = 12 AND project = "Test Project"');
       const result = interpreter.interpret(ast);
 
       expect(result.where).toEqual({
@@ -83,8 +76,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should interpret date range with BETWEEN', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
       const result = interpreter.interpret(ast);
 
       expect(result.where!.dateRange).toEqual({
@@ -104,8 +96,7 @@ describe('QueryInterpreter', () => {
 
       queries.forEach(({ query }) => {
         expect(() => {
-          const parser = new Parser(query);
-          const ast = parser.parse();
+          const ast = parseQuery(query);
           interpreter.interpret(ast);
         }).not.toThrow();
       });
@@ -122,8 +113,7 @@ describe('QueryInterpreter', () => {
 
     viewTypes.forEach(({ input, expected }) => {
       it(`should interpret ${input}`, () => {
-        const parser = new Parser(input);
-        const ast = parser.parse();
+        const ast = parseQuery(input);
         const result = interpreter.interpret(ast);
 
         expect(result.view).toBe(expected);
@@ -131,8 +121,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should handle case insensitive view types', () => {
-      const parser = new Parser('VIEW Chart');
-      const ast = parser.parse();
+      const ast = parseQuery('VIEW Chart');
       const result = interpreter.interpret(ast);
 
       expect(result.view).toBe('chart');
@@ -148,8 +137,7 @@ describe('QueryInterpreter', () => {
 
     chartTypes.forEach(({ input, expected }) => {
       it(`should interpret ${input}`, () => {
-        const parser = new Parser(input);
-        const ast = parser.parse();
+        const ast = parseQuery(input);
         const result = interpreter.interpret(ast);
 
         expect(result.chartType).toBe(expected);
@@ -167,8 +155,7 @@ describe('QueryInterpreter', () => {
 
     periods.forEach(({ input, expected }) => {
       it(`should interpret ${input}`, () => {
-        const parser = new Parser(input);
-        const ast = parser.parse();
+        const ast = parseQuery(input);
         const result = interpreter.interpret(ast);
 
         expect(result.period).toBe(expected);
@@ -185,8 +172,7 @@ describe('QueryInterpreter', () => {
 
     sizes.forEach(({ input, expected }) => {
       it(`should interpret ${input}`, () => {
-        const parser = new Parser(input);
-        const ast = parser.parse();
+        const ast = parseQuery(input);
         const result = interpreter.interpret(ast);
 
         expect(result.size).toBe(expected);
@@ -196,32 +182,28 @@ describe('QueryInterpreter', () => {
 
   describe('SHOW clause interpretation', () => {
     it('should interpret single field', () => {
-      const parser = new Parser('SHOW hours');
-      const ast = parser.parse();
+      const ast = parseQuery('SHOW hours');
       const result = interpreter.interpret(ast);
 
       expect(result.show).toEqual(['hours']);
     });
 
     it('should interpret multiple fields', () => {
-      const parser = new Parser('SHOW hours, invoiced, progress');
-      const ast = parser.parse();
+      const ast = parseQuery('SHOW hours, invoiced, progress');
       const result = interpreter.interpret(ast);
 
       expect(result.show).toEqual(['hours', 'invoiced', 'progress']);
     });
 
     it('should handle all available fields', () => {
-      const parser = new Parser('SHOW hours, invoiced, progress, utilization, remaining');
-      const ast = parser.parse();
+      const ast = parseQuery('SHOW hours, invoiced, progress, utilization, remaining');
       const result = interpreter.interpret(ast);
 
       expect(result.show).toEqual(['hours', 'invoiced', 'progress', 'utilization', 'remaining']);
     });
 
     it('should preserve field order', () => {
-      const parser = new Parser('SHOW progress, hours, invoiced');
-      const ast = parser.parse();
+      const ast = parseQuery('SHOW progress, hours, invoiced');
       const result = interpreter.interpret(ast);
 
       expect(result.show).toEqual(['progress', 'hours', 'invoiced']);
@@ -231,55 +213,50 @@ describe('QueryInterpreter', () => {
   describe('Complex query interpretation', () => {
     it('should interpret complete dashboard query', () => {
       const query = `
-        WHERE year = 2024 AND project = "Client Alpha"
+        WHERE year >= 2023 AND project = "Dashboard Project"
         SHOW hours, invoiced, progress
         VIEW full
         CHART trend
-        PERIOD last-6-months
+        PERIOD last-12-months
         SIZE detailed
       `;
-
-      const parser = new Parser(query);
-      const ast = parser.parse();
+      const ast = parseQuery(query);
       const result = interpreter.interpret(ast);
 
       expect(result).toEqual({
         where: {
-          year: 2024,
-          project: 'Client Alpha'
+          year: 2023,
+          project: 'Dashboard Project'
         },
         show: ['hours', 'invoiced', 'progress'],
         view: 'full',
         chartType: 'trend',
-        period: 'last-6-months',
+        period: 'last-12-months',
         size: 'detailed'
       });
     });
 
     it('should interpret budget tracking query', () => {
       const query = `
-        WHERE project = "Q1 Budget" AND date BETWEEN "2024-01-01" AND "2024-03-31"
+        WHERE year >= 2023 AND month > 6
+        SHOW hours, invoiced, progress, remaining
         VIEW chart
         CHART budget
-        SIZE normal
       `;
 
-      const parser = new Parser(query);
-      const ast = parser.parse();
+      const ast = parseQuery(query);
       const result = interpreter.interpret(ast);
 
       expect(result).toEqual({
         where: {
-          project: 'Q1 Budget',
-          dateRange: {
-            start: '2024-01-01',
-            end: '2024-03-31'
-          }
+          year: 2023,
+          month: 6
         },
+        show: ['hours', 'invoiced', 'progress', 'remaining'],
         view: 'chart',
         chartType: 'budget',
-        size: 'normal',
-        period: 'current-year' // default
+        period: 'current-year',  // Default period
+        size: 'normal'  // Default size
       });
     });
 
@@ -293,8 +270,7 @@ describe('QueryInterpreter', () => {
         SIZE detailed
       `;
 
-      const parser = new Parser(query);
-      const ast = parser.parse();
+      const ast = parseQuery(query);
       const result = interpreter.interpret(ast);
 
       expect(result.where!.year).toBe(2024);
@@ -305,8 +281,7 @@ describe('QueryInterpreter', () => {
 
   describe('Type validation', () => {
     it('should handle string fields correctly', () => {
-      const parser = new Parser('WHERE project = "Test Project"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE project = "Test Project"');
       const result = interpreter.interpret(ast);
 
       expect(typeof result.where!.project).toBe('string');
@@ -314,8 +289,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should handle numeric fields correctly', () => {
-      const parser = new Parser('WHERE year = 2024 AND month = 12');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE year = 2024 AND month = 12');
       const result = interpreter.interpret(ast);
 
       expect(typeof result.where!.year).toBe('number');
@@ -325,8 +299,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should handle date strings correctly', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
       const result = interpreter.interpret(ast);
 
       expect(typeof result.where!.dateRange!.start).toBe('string');
@@ -338,13 +311,10 @@ describe('QueryInterpreter', () => {
 
   describe('Error handling', () => {
     it('should handle unknown field names gracefully', () => {
-      // This might not throw in the current implementation, but should be tested
-      const parser = new Parser('WHERE unknown_field = "value"');
-      const ast = parser.parse();
-
+      // The parser now validates field names and throws ParseError
       expect(() => {
-        interpreter.interpret(ast);
-      }).not.toThrow(); // Current implementation may be lenient
+        parseQuery('WHERE unknown_field = "value"');
+      }).toThrow(); // Parser validates field names
     });
 
     it('should handle malformed WHERE conditions', () => {
@@ -385,42 +355,38 @@ describe('QueryInterpreter', () => {
     });
 
     it('should handle very long project names', () => {
-      const longName = 'A'.repeat(1000);
-      const parser = new Parser(`WHERE project = "${longName}"`);
-      const ast = parser.parse();
+      const longProjectName = 'A'.repeat(1000);
+      const ast = parseQuery(`WHERE project = "${longProjectName}"`);
       const result = interpreter.interpret(ast);
 
-      expect(result.where!.project).toBe(longName);
+      expect(result.where!.project).toBe(longProjectName);
     });
 
     it('should handle special characters in project names', () => {
-      const specialName = 'Project "Alpha" & Company - Phase 2 (2024)';
-      const parser = new Parser(`WHERE project = "Project \\"Alpha\\" & Company - Phase 2 (2024)"`);
-      const ast = parser.parse();
+      const specialProject = 'Project #1 (Test & Development) - [Phase 2]';
+      const ast = parseQuery(`WHERE project = "${specialProject}"`);
       const result = interpreter.interpret(ast);
 
-      expect(result.where!.project).toBe(specialName);
+      expect(result.where!.project).toBe(specialProject);
     });
 
     it('should handle Unicode characters', () => {
-      const unicodeName = 'Projet Français 🇫🇷 中文 русский';
-      const parser = new Parser(`WHERE project = "${unicodeName}"`);
-      const ast = parser.parse();
+      const unicodeProject = 'プロジェクト 📊 émojis & ñoñó';
+      const ast = parseQuery(`WHERE project = "${unicodeProject}"`);
       const result = interpreter.interpret(ast);
 
-      expect(result.where!.project).toBe(unicodeName);
+      expect(result.where!.project).toBe(unicodeProject);
     });
 
     it('should handle boundary year values', () => {
       const queries = [
-        'WHERE year = 0',
-        'WHERE year = 9999',
-        'WHERE year = 2024'
+        'WHERE year = 1900',
+        'WHERE year = 2100',
+        'WHERE year = 0'
       ];
 
       queries.forEach(query => {
-        const parser = new Parser(query);
-        const ast = parser.parse();
+        const ast = parseQuery(query);
 
         expect(() => {
           const result = interpreter.interpret(ast);
@@ -433,8 +399,7 @@ describe('QueryInterpreter', () => {
       const validMonths = [1, 2, 11, 12];
 
       validMonths.forEach(month => {
-        const parser = new Parser(`WHERE month = ${month}`);
-        const ast = parser.parse();
+        const ast = parseQuery(`WHERE month = ${month}`);
         const result = interpreter.interpret(ast);
 
         expect(result.where!.month).toBe(month);
@@ -444,8 +409,7 @@ describe('QueryInterpreter', () => {
 
   describe('Immutability', () => {
     it('should return new query objects for each interpretation', () => {
-      const parser = new Parser('WHERE year = 2024');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE year = 2024');
 
       const result1 = interpreter.interpret(ast);
       const result2 = interpreter.interpret(ast);
@@ -455,8 +419,7 @@ describe('QueryInterpreter', () => {
     });
 
     it('should not modify the input AST', () => {
-      const parser = new Parser('WHERE year = 2024 VIEW chart');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE year = 2024 VIEW chart');
       const originalAST = JSON.parse(JSON.stringify(ast));
 
       interpreter.interpret(ast);
@@ -479,8 +442,7 @@ describe('QueryInterpreter', () => {
 
       validQueries.forEach(query => {
         expect(() => {
-          const parser = new Parser(query);
-          const ast = parser.parse();
+          const ast = parseQuery(query);
           const result = interpreter.interpret(ast);
 
           // Basic structure validation

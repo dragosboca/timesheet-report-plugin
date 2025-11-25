@@ -4,7 +4,7 @@ import { MarkdownPostProcessorContext } from 'obsidian';
 import TimesheetReportPlugin from './main';
 import { DataProcessor } from './data-processor';
 import { ChartRenderer } from './chart-renderer';
-import { Parser, ParseError } from './query/parser';
+import { QueryParser, parseQuery, ParseError } from './query/parser';
 import { QueryInterpreter, TimesheetQuery, InterpreterError } from './query/interpreter';
 
 export class EmbedProcessor {
@@ -42,8 +42,7 @@ export class EmbedProcessor {
   }
 
   private parseQuery(source: string): TimesheetQuery {
-    const parser = new Parser(source);
-    const ast = parser.parse();
+    const ast = parseQuery(source);
 
     const interpreter = new QueryInterpreter();
     const query = interpreter.interpret(ast);

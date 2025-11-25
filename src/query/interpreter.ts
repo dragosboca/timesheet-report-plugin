@@ -167,9 +167,11 @@ export class QueryInterpreter implements ASTVisitor<any> {
 
     switch (fieldName.toLowerCase()) {
       case 'year':
-        if (typeof value === 'number' && !isNaN(value) && ['=', '!=', '>', '<', '>=', '<='].includes(operator)) {
+        // Handle both number and string representations
+        const yearValue = typeof value === 'number' ? value : parseFloat(value);
+        if (!isNaN(yearValue) && ['=', '!=', '>', '<', '>=', '<='].includes(operator)) {
           // For simplicity, all numeric comparisons are treated as equality for now
-          this.query.where.year = value;
+          this.query.where.year = yearValue;
         } else if (value === undefined || value === null) {
           // Handle malformed conditions gracefully
           console.warn(`Malformed year condition: ${operator} ${value}`);
@@ -179,9 +181,11 @@ export class QueryInterpreter implements ASTVisitor<any> {
         break;
 
       case 'month':
-        if (typeof value === 'number' && !isNaN(value) && ['=', '!=', '>', '<', '>=', '<='].includes(operator)) {
+        // Handle both number and string representations
+        const monthValue = typeof value === 'number' ? value : parseFloat(value);
+        if (!isNaN(monthValue) && ['=', '!=', '>', '<', '>=', '<='].includes(operator)) {
           // For simplicity, all numeric comparisons are treated as equality for now
-          this.query.where.month = value;
+          this.query.where.month = monthValue;
         } else if (value === undefined || value === null) {
           // Handle malformed conditions gracefully
           console.warn(`Malformed month condition: ${operator} ${value}`);

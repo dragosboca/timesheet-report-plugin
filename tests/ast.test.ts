@@ -1,5 +1,5 @@
 
-import { Parser } from '../src/query/parser';
+import { parseQuery } from '../src/query/parser';
 import {
   walkAST,
   findNodesByType,
@@ -24,8 +24,7 @@ describe('AST Utilities', () => {
 
   beforeEach(() => {
     // Create a sample AST for testing
-    const parser = new Parser('WHERE year = 2024 AND project = "Test" VIEW chart');
-    sampleAST = parser.parse();
+    sampleAST = parseQuery('WHERE year = 2024 AND project = "Test" VIEW chart');
   });
 
   describe('walkAST function', () => {
@@ -75,8 +74,7 @@ describe('AST Utilities', () => {
     });
 
     it('should handle complex nested structures', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31" AND project = "Complex"');
-      const complexAST = parser.parse();
+      const complexAST = parseQuery('WHERE date BETWEEN "2024-01-01" AND "2024-12-31" AND project = "Complex"');
       const visitedTypes: string[] = [];
 
       walkAST(complexAST, (node: ASTNode) => {
@@ -100,7 +98,7 @@ describe('AST Utilities', () => {
         }
       });
 
-      expect(literalValues).toContain(2024);
+      expect(literalValues).toContain("2024");
       expect(literalValues).toContain('Test');
       expect(identifierNames).toContain('year');
       expect(identifierNames).toContain('project');
@@ -112,7 +110,7 @@ describe('AST Utilities', () => {
       const literals = findNodesByType<LiteralNode>(sampleAST, 'Literal');
 
       expect(literals).toHaveLength(2);
-      expect(literals[0].value).toBe(2024);
+      expect(literals[0].value).toBe("2024");
       expect(literals[1].value).toBe('Test');
     });
 
@@ -137,11 +135,10 @@ describe('AST Utilities', () => {
     });
 
     it('should work with complex nested structures', () => {
-      const parser = new Parser(`
+      const complexAST = parseQuery(`
         WHERE project = "Alpha" AND date BETWEEN "2024-01-01" AND "2024-12-31"
         SHOW hours, invoiced, progress
       `);
-      const complexAST = parser.parse();
 
       const literals = findNodesByType<LiteralNode>(complexAST, 'Literal');
       const identifiers = findNodesByType<IdentifierNode>(complexAST, 'Identifier');
@@ -181,7 +178,7 @@ describe('AST Utilities', () => {
     });
 
     it('should handle complex queries with many nodes', () => {
-      const parser = new Parser(`
+      const complexAST = parseQuery(`
         WHERE year = 2024 AND month = 12 AND project = "Alpha"
         SHOW hours, invoiced, progress, utilization
         VIEW chart
@@ -189,7 +186,6 @@ describe('AST Utilities', () => {
         PERIOD last-6-months
         SIZE detailed
       `);
-      const complexAST = parser.parse();
       const stats = getASTStatistics(complexAST);
 
       expect(stats.Query).toBe(1);
@@ -205,8 +201,7 @@ describe('AST Utilities', () => {
     });
 
     it('should count DateRange nodes', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE date BETWEEN "2024-01-01" AND "2024-12-31"');
       const stats = getASTStatistics(ast);
 
       expect(stats.DateRange).toBe(1);
@@ -292,8 +287,7 @@ describe('AST Utilities', () => {
     });
 
     it('should validate deeply nested structures', () => {
-      const parser = new Parser('WHERE date BETWEEN "2024-01-01" AND "2024-12-31" VIEW full');
-      const ast = parser.parse();
+      const ast = parseQuery('WHERE date BETWEEN "2024-01-01" AND "2024-12-31" VIEW full');
       const validation = validateAST(ast);
 
       expect(validation.isValid).toBe(true);
@@ -471,8 +465,7 @@ describe('AST Utilities', () => {
         `year = ${2000 + i}`
       ).join(' AND ');
 
-      const parser = new Parser(`WHERE ${largeQuery}`);
-      const largeAST = parser.parse();
+      const largeAST = parseQuery(`WHERE ${largeQuery}`);
 
       const startTime = Date.now();
       const stats = getASTStatistics(largeAST);
@@ -483,7 +476,7 @@ describe('AST Utilities', () => {
     });
 
     it('should be memory efficient with node traversal', () => {
-      const parser = new Parser(`
+      const ast = parseQuery(`
         WHERE year = 2024 AND month = 12 AND project = "Test"
         SHOW hours, invoiced, progress
         VIEW chart
@@ -491,7 +484,6 @@ describe('AST Utilities', () => {
         PERIOD all-time
         SIZE detailed
       `);
-      const ast = parser.parse();
 
       // Multiple traversals should not accumulate memory
       for (let i = 0; i < 100; i++) {
