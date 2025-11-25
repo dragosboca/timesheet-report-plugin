@@ -1,4 +1,4 @@
-import { TFile, TFolder, normalizePath } from 'obsidian';
+import { TFile, TFolder, normalizePath, CachedMetadata } from 'obsidian';
 import TimesheetReportPlugin from './main';
 
 interface TimeEntry {
@@ -168,69 +168,53 @@ export class DataProcessor {
 
     for (const file of files) {
       try {
-        const content = await this.plugin.app.vault.read(file);
-        const lines = content.split('\n');
+        // Use Obsidian's metadata cache to get frontmatter
+        const cache = this.plugin.app.metadataCache.getFileCache(file);
+        const frontmatter = cache?.frontmatter;
 
-        // Extract YAML frontmatter if present
-        let yamlSection = '';
-        let inYaml = false;
-
-        let yamlEnd = -1;
-
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].trim() === '---') {
-            if (!inYaml) {
-              inYaml = true;
-
-            } else {
-              yamlEnd = i;
-              break;
-            }
-          } else if (inYaml) {
-            yamlSection += lines[i] + '\n';
+        if (!frontmatter) {
+          if (this.plugin.settings.debugMode) {
+            console.warn(`No frontmatter found in file: ${file.path}`);
           }
+          continue;
         }
 
         // Extract date using our helper method
-        const date = this.extractDateFromFile(file, yamlSection);
+        const date = this.extractDateFromFile(file, cache);
 
         if (!date || isNaN(date.getTime())) {
           if (this.plugin.settings.debugMode) {
             console.log(`File basename: "${file.basename}"`);
-            console.log(`YAML section content: "${yamlSection}"`);
+            console.log(`Frontmatter:`, frontmatter);
           }
           console.warn(`Could not extract date from file: ${file.path}`);
           continue;
         }
 
-        // Extract data directly from YAML frontmatter
-        const hoursMatch = yamlSection.match(/hours:\s*(\d+(\.\d+)?)/);
-        const rateMatch = yamlSection.match(/per-hour:\s*(\d+(\.\d+)?)/);
-        const workedMatch = yamlSection.match(/worked:\s*(true|false)/i);
-
-        // Only process entries marked as worked: true
-        const worked = workedMatch ? workedMatch[1].toLowerCase() === 'true' : true;
+        // Only process entries marked as worked: true (default to true if not specified)
+        const worked = frontmatter.worked !== false;
 
         if (worked) {
           let hours = 0;
-          if (hoursMatch && hoursMatch[1]) {
-            hours = parseFloat(hoursMatch[1]);
+          if (frontmatter.hours && typeof frontmatter.hours === 'number') {
+            hours = frontmatter.hours;
+          } else if (frontmatter.hours && typeof frontmatter.hours === 'string') {
+            hours = parseFloat(frontmatter.hours);
           }
 
           let rate = 0;
-          if (rateMatch && rateMatch[1]) {
-            rate = parseFloat(rateMatch[1]);
+          if (frontmatter['per-hour'] && typeof frontmatter['per-hour'] === 'number') {
+            rate = frontmatter['per-hour'];
+          } else if (frontmatter['per-hour'] && typeof frontmatter['per-hour'] === 'string') {
+            rate = parseFloat(frontmatter['per-hour']);
           }
 
           // Extract project/client info
           let project = 'Unknown';
-          const workOrderMatch = yamlSection.match(/work-order:(?:\s*-\s*|\s*)([^\n]+)/);
-          const clientMatch = yamlSection.match(/client:(?:\s*-\s*|\s*)([^\n]+)/);
-
-          if (workOrderMatch && workOrderMatch[1]) {
-            project = workOrderMatch[1].trim();
-          } else if (clientMatch && clientMatch[1]) {
-            project = clientMatch[1].trim();
+          if (frontmatter['work-order']) {
+            project = String(frontmatter['work-order']).trim();
+          } else if (frontmatter.client) {
+            project = String(frontmatter.client).trim();
           }
 
           // Add the entry if we have hours and rate
@@ -247,8 +231,8 @@ export class DataProcessor {
               console.log(`Added entry for ${date.toISOString().split('T')[0]}: ${hours} hours at ${rate}/hour for ${project}`);
             }
           } else {
-            // If no hours in YAML, check for default hours in settings
-            if (this.plugin.settings.hoursPerWorkday && !hoursMatch) {
+            // If no hours in frontmatter, check for default hours in settings
+            if (this.plugin.settings.hoursPerWorkday && !frontmatter.hours) {
               hours = this.plugin.settings.hoursPerWorkday;
 
               // Add an entry with default hours if rate is specified
@@ -265,12 +249,12 @@ export class DataProcessor {
                   console.log(`Added entry with default hours for ${date.toISOString().split('T')[0]}: ${hours} hours at ${rate}/hour for ${project}`);
                 }
               } else {
-                // Look for tables in the content if no rate in YAML either
-                this.extractTimeEntriesFromTables(lines, yamlEnd, date, rate, project, allEntries);
+                // Look for tables in the content if no rate in frontmatter either
+                await this.extractTimeEntriesFromTables(file, date, rate, project, allEntries);
               }
             } else {
-              // If no hours in YAML, look for tables in the content
-              this.extractTimeEntriesFromTables(lines, yamlEnd, date, rate, project, allEntries);
+              // If no hours in frontmatter, look for tables in the content
+              await this.extractTimeEntriesFromTables(file, date, rate, project, allEntries);
             }
           }
         }
@@ -282,84 +266,102 @@ export class DataProcessor {
     return allEntries;
   }
 
-  private extractTimeEntriesFromTables(
-    lines: string[],
-    yamlEnd: number,
+  private async extractTimeEntriesFromTables(
+    file: TFile,
     date: Date,
     defaultRate: number,
     project: string,
     allEntries: TimeEntry[]
-  ): void {
-    let inTable = false;
-    let tableHeaders: string[] = [];
-    const tableRows: string[][] = [];
+  ): Promise<void> {
+    try {
+      // Read the file content
+      const content = await this.plugin.app.vault.cachedRead(file);
+      const lines = content.split('\n');
 
-    for (let i = yamlEnd + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let inTable = false;
+      let tableHeaders: string[] = [];
+      const tableRows: string[][] = [];
 
-      // Table header line
-      if (line.startsWith('|') && line.endsWith('|') && !inTable) {
-        inTable = true;
-        tableHeaders = line
-          .split('|')
-          .map(header => header.trim().toLowerCase())
-          .filter(Boolean);
-        continue;
-      }
-
-      // Table separator line, skip it
-      if (inTable && line.startsWith('|') && line.includes('-')) {
-        continue;
-      }
-
-      // Table data row
-      if (inTable && line.startsWith('|') && line.endsWith('|')) {
-        const rowData = line
-          .split('|')
-          .map(cell => cell.trim())
-          .filter(Boolean);
-
-        if (rowData.length > 0) {
-          tableRows.push(rowData);
-        }
-        continue;
-      }
-
-      // End of table
-      if (inTable && (!line.startsWith('|') || !line.endsWith('|'))) {
-        inTable = false;
-      }
-    }
-
-    // Process table rows into time entries
-    for (const row of tableRows) {
-      let hours = 0;
-      let rate = defaultRate;
-      let notes = '';
-
-      for (let i = 0; i < Math.min(row.length, tableHeaders.length); i++) {
-        const header = tableHeaders[i];
-        const value = row[i];
-
-        if (header.includes('hour')) {
-          hours = parseFloat(value) || 0;
-        } else if (header.includes('rate')) {
-          // Remove currency symbol and parse
-          rate = parseFloat(value.replace(/[^0-9.]/g, '')) || defaultRate;
-        } else if (header.includes('note') || header.includes('description') || header.includes('task')) {
-          notes = value;
+      // Skip frontmatter section
+      let contentStartIndex = 0;
+      if (lines[0]?.trim() === '---') {
+        for (let i = 1; i < lines.length; i++) {
+          if (lines[i].trim() === '---') {
+            contentStartIndex = i + 1;
+            break;
+          }
         }
       }
 
-      if (hours > 0) {
-        allEntries.push({
-          date,
-          hours,
-          rate,
-          notes,
-          project
-        });
+      for (let i = contentStartIndex; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // Table header line
+        if (line.startsWith('|') && line.endsWith('|') && !inTable) {
+          inTable = true;
+          tableHeaders = line
+            .split('|')
+            .map(header => header.trim().toLowerCase())
+            .filter(Boolean);
+          continue;
+        }
+
+        // Table separator line, skip it
+        if (inTable && line.startsWith('|') && line.includes('-')) {
+          continue;
+        }
+
+        // Table data row
+        if (inTable && line.startsWith('|') && line.endsWith('|')) {
+          const rowData = line
+            .split('|')
+            .map(cell => cell.trim())
+            .filter(Boolean);
+
+          if (rowData.length > 0) {
+            tableRows.push(rowData);
+          }
+          continue;
+        }
+
+        // End of table
+        if (inTable && (!line.startsWith('|') || !line.endsWith('|'))) {
+          inTable = false;
+        }
       }
+
+      // Process table rows into time entries
+      for (const row of tableRows) {
+        let hours = 0;
+        let rate = defaultRate;
+        let notes = '';
+
+        for (let i = 0; i < Math.min(row.length, tableHeaders.length); i++) {
+          const header = tableHeaders[i];
+          const value = row[i];
+
+          if (header.includes('hour')) {
+            hours = parseFloat(value) || 0;
+          } else if (header.includes('rate')) {
+            // Remove currency symbol and parse
+            rate = parseFloat(value.replace(/[^0-9.]/g, '')) || defaultRate;
+          } else if (header.includes('note') || header.includes('description') || header.includes('task')) {
+            notes = value;
+          }
+        }
+
+        if (hours > 0) {
+          allEntries.push({
+            date,
+            hours,
+            rate,
+            notes,
+            project
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`Error extracting table data from file ${file.path}:`, error);
     }
   }
 
@@ -621,13 +623,46 @@ export class DataProcessor {
   /**
    * Helper method to try extracting a date from different parts of a file
    * @param file - The file to extract date from
-   * @param yamlSection - YAML frontmatter content
+   * @param cache - File metadata cache
    * @returns Date object or null if date couldn't be extracted
    */
-  public extractDateFromFile(file: TFile, yamlSection: string): Date | null {
+  public extractDateFromFile(file: TFile, cache: CachedMetadata | null): Date | null {
     let date: Date | null = null;
 
-    // Method 1: Extract from filename with pattern YYYY-MM-DD
+    // Method 1: Extract from frontmatter using metadata cache
+    if (cache?.frontmatter?.date) {
+      try {
+        const dateValue = cache.frontmatter.date;
+
+        // Handle different date formats
+        if (dateValue instanceof Date) {
+          date = dateValue;
+        } else if (typeof dateValue === 'string') {
+          // Try standard ISO format YYYY-MM-DD
+          date = new Date(dateValue);
+
+          // Check if the date is valid
+          if (isNaN(date.getTime())) {
+            // Try MM/DD/YYYY format if ISO format failed
+            if (dateValue.includes('/')) {
+              const [month, day, year] = dateValue.split('/').map(Number);
+              date = new Date(year, month - 1, day);
+            }
+          }
+        }
+
+        if (date && !isNaN(date.getTime())) {
+          if (this.plugin.settings.debugMode) {
+            console.log(`Extracted date from frontmatter in ${file.basename}: ${date.toISOString().split('T')[0]}`);
+          }
+          return date;
+        }
+      } catch (error) {
+        console.warn(`Failed to parse date from frontmatter in file ${file.path}`);
+      }
+    }
+
+    // Method 2: Extract from filename with pattern YYYY-MM-DD
     const fileNameMatch = file.basename.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (fileNameMatch) {
       try {
@@ -651,36 +686,6 @@ export class DataProcessor {
       }
     } else if (this.plugin.settings.debugMode) {
       console.log(`No date match found in filename: "${file.basename}"`);
-    }
-
-    // Method 2: Extract from YAML frontmatter
-    const dateMatch = yamlSection.match(/date:\s*([\d-/]+)/);
-    if (dateMatch && dateMatch[1]) {
-      // Try to parse the date, accounting for different formats
-      const dateStr = dateMatch[1].trim();
-
-      try {
-        // Try standard ISO format YYYY-MM-DD
-        date = new Date(dateStr);
-
-        // Check if the date is valid
-        if (isNaN(date.getTime())) {
-          // Try MM/DD/YYYY format if ISO format failed
-          if (dateStr.includes('/')) {
-            const [month, day, year] = dateStr.split('/').map(Number);
-            date = new Date(year, month - 1, day);
-          }
-        }
-
-        if (!isNaN(date.getTime())) {
-          if (this.plugin.settings.debugMode) {
-            console.log(`Extracted date from YAML in ${file.basename}: ${date.toISOString().split('T')[0]}`);
-          }
-          return date;
-        }
-      } catch (error) {
-        console.warn(`Failed to parse date '${dateStr}' from file ${file.path}`);
-      }
     }
 
     // Method 3: Look for date in path segments

@@ -13,6 +13,7 @@ A comprehensive timesheet reporting plugin that generates interactive visualizat
 - **⚙️ Flexible Configuration**: Support for hourly, fixed-budget, and retainer project types
 - **🚀 Grammar-Based Parser**: Professional query language with tokenization, AST parsing, and type safety
 - **🔍 Advanced Query Language**: SQL-like syntax with proper error messages and extensible architecture
+- **📁 Official API Integration**: Uses Obsidian's official TypeScript API for all file operations and metadata access
 
 ## Quick Start
 
@@ -34,58 +35,75 @@ A comprehensive timesheet reporting plugin that generates interactive visualizat
 
 ```md
 ---
-tags: [Daily]
-hours: 8
+tags: [timesheet]
+hours: 8.5
 worked: true
 per-hour: 75
-client: [Client Name]
-work-order: [Project Name]
+client: Client Name
+work-order: Project Alpha
 ---
 
-# Daily Work Log
+# Daily Work Log - 2024-03-15
 
 ## Tasks Completed
-- Feature development
-- Client meeting
-- Code review
+- Feature development for user authentication
+- Client meeting to discuss requirements
+- Code review and bug fixes
+
+## Notes
+Productive day with solid progress on the authentication module.
 ```
 
 3. **View Reports**: Click the calendar-clock icon in the ribbon or use "Open Timesheet Report" from the command palette
 
 ## Timesheet File Format
 
+The plugin uses **Obsidian's official metadata cache** to read frontmatter, ensuring compatibility and performance. All frontmatter properties are automatically detected and processed.
+
 ### Required Elements
 
 Your timesheet files need:
-- **Date**: Either in filename (YYYY-MM-DD.md) or YAML frontmatter
-- **Hours**: Total hours worked that day
+- **Date**: Either in filename (YYYY-MM-DD.md) or YAML frontmatter (`date: 2024-03-15`)
+- **Hours**: Total hours worked that day (`hours: 8.5`)
 - **Rate**: Hourly billing rate (optional, uses project default if not specified)
 
-### YAML Frontmatter Options
+### YAML Frontmatter Properties
+
+**All properties go in the frontmatter block** (between `---` lines at the top of your file):
 
 ```yaml
 ---
-hours: 8          # Total hours worked
-worked: true      # Whether work was performed (default: true)
-per-hour: 75      # Hourly rate
-client:           # Client name(s)
-  - ClientName
-work-order:       # Project/work order
-  - ProjectName
+# Core tracking fields
+hours: 8.5           # Required: Total hours worked (number or string)
+worked: true         # Optional: Whether work was performed (default: true)
+per-hour: 75         # Optional: Hourly rate (number or string)
+
+# Project identification
+client: Client Name      # Optional: Client name (string)
+work-order: Project Alpha # Optional: Project/work order name (string)
+project: MVP Development  # Optional: Alternative to work-order
+
+# Date (if not in filename)
+date: 2024-03-15     # Optional: Date in YYYY-MM-DD format
+
+# Additional metadata
+tags: [timesheet, consulting]  # Optional: For organizing files
 ---
 ```
 
 ### Alternative: Table Format
 
-You can also use tables for detailed breakdowns:
+You can also include detailed breakdowns in the file content:
 
 ```md
 | Task | Hours | Rate | Notes |
 |------|-------|------|-------|
-| Development | 4.0 | 75 | New features |
-| Meetings | 2.0 | 75 | Client calls |
-| Testing | 2.0 | 75 | QA review |
+| Development | 4.0 | 75 | Authentication features |
+| Meetings | 2.0 | 75 | Requirements gathering |
+| Testing | 2.5 | 75 | QA and bug fixes |
 ```
+
+**Note**: Tables are parsed from content, but frontmatter data takes precedence for totals.
 
 ## Project Types & Configuration
 
@@ -131,50 +149,89 @@ You can also use tables for detailed breakdowns:
 - Consumption efficiency tracking
 - Monthly/period reset capabilities
 
+## Report Templates vs. Frontmatter
+
+### What Goes in Frontmatter
+
+**Frontmatter** (YAML block) contains **data** that the plugin processes:
+
+```yaml
+---
+hours: 8.5           # Processed into charts and calculations
+per-hour: 75         # Used for revenue calculations
+client: Acme Corp    # Used for project identification
+work-order: Project X # Used for task descriptions
+worked: true         # Controls whether day counts as worked
+date: 2024-03-15     # Used if date not in filename
+tags: [consulting]   # For file organization
+---
+```
+
+### What Goes in Report Templates
+
+**Report templates** contain **presentation formatting** with placeholders:
+
+```markdown
+# {{PROJECT_NAME}} - {{MONTH_YEAR}} Report
+
+## Summary
+Total hours worked: **{{MONTH_HOURS}}**
+Total value: **{{TOTAL_VALUE}}**
+
+## Details
+{{TABLE_PLACEHOLDER}}
+
+*Generated on {{GENERATION_DATE}}*
+```
+
+**Available template placeholders**:
+- `{{PROJECT_NAME}}` - From plugin settings
+- `{{MONTH_YEAR}}` - Report period (e.g., "March 2024")
+- `{{MONTH_HOURS}}` - Calculated from frontmatter hours
+- `{{TOTAL_VALUE}}` - Calculated from hours × rates
+- `{{REMAINING_HOURS}}` - For budget projects
+- `{{TABLE_PLACEHOLDER}}` - Generated timesheet table
+- `{{GENERATION_DATE}}` - Current date
+- `{{CURRENCY}}` - From plugin settings
+
 ## Embedding Reports in Notes
 
-Embed live timesheet reports anywhere in your vault using our powerful SQL-like query language. The grammar-based parser provides excellent error messages, supports comments, and enables complex filtering:
+Embed live timesheet reports anywhere in your vault using our powerful SQL-like query language:
 
 ### Basic Examples
 
-**Quick summary in daily notes**:
 ```timesheet
-// Current year summary for widgets
+// Current year summary
 WHERE year = 2024
 VIEW summary
 SIZE compact
 ```
 
-**Project dashboard with full details**:
 ```timesheet
-// Complete project analysis
+// Project analysis with charts
 WHERE project = "Client Alpha" AND year = 2024
 VIEW full
 CHART trend
-PERIOD last-6-months
 SIZE detailed
 ```
 
-**Budget tracking with date range**:
 ```timesheet
-// Q4 2024 budget progress
+// Budget tracking
 WHERE date BETWEEN "2024-10-01" AND "2024-12-31"
 CHART budget
 VIEW chart
-SIZE normal
 ```
 
 ### Query Syntax Reference
 
-The query language uses a grammar-based parser for robust syntax validation and excellent error reporting.
-
 #### WHERE Clauses (Filters)
 - `WHERE year = 2024` - Filter by year
 - `WHERE month = 3` - Filter by month (1-12)
-- `WHERE project = "Client ABC"` - Filter by project (quotes required for strings)
+- `WHERE project = "Client ABC"` - Filter by project name
+- `WHERE client = "Acme Corp"` - Filter by client
 - `WHERE date BETWEEN "2024-01-01" AND "2024-03-31"` - Date range
-- `WHERE year = 2024 AND month >= 10` - Multiple conditions with AND
-- `// Comments are supported` - Add comments anywhere in your queries
+- `WHERE hours > 0` - Only worked days
+- `// Comments supported` - Add explanations
 
 #### Operators
 - `=`, `!=` - Equality and inequality
@@ -200,145 +257,95 @@ The query language uses a grammar-based parser for robust syntax validation and 
 - `PERIOD last-12-months` - Recent 12 months
 
 #### SIZE Options
-- `SIZE compact` - Minimal space for widgets
+- `SIZE compact` - Minimal space
 - `SIZE normal` - Standard display
 - `SIZE detailed` - Full information
 
-### Advanced Embedding
-
-**Monthly review template with comments**:
-```markdown
-# March 2024 Review
-
-## Performance Summary
-```timesheet
-// Monthly performance metrics
-WHERE year = 2024 AND month = 3
-VIEW summary
-SIZE detailed
-```
-
-## Budget Progress  
-```timesheet
-// Budget tracking visualization
-WHERE project = "Q1 Deliverables"
-CHART budget
-VIEW chart
-```
-
-## Detailed Breakdown
-```timesheet
-// Complete data table for the month
-WHERE year = 2024 AND month = 3
-VIEW table
-SIZE normal
-```
-
-## Year-over-Year Comparison
-```timesheet
-// Compare with previous year
-WHERE month = 3 AND (year = 2024 OR year = 2023)
-VIEW chart
-CHART trend
-```
-```
-
 ## Report Generation
 
-### Creating Monthly Reports
+### Monthly Reports
 
-1. Click "Generate Monthly Report" in the timesheet view, or
-2. Use Command Palette → "Generate Monthly Timesheet Report"
-3. Select month/year and optional template
-4. Report saves to `Reports/Timesheet/` folder
+1. **Generate Reports**: Click "Generate Monthly Report" or use Command Palette
+2. **Select Options**: Choose month/year and template
+3. **Output Location**: Reports save to your configured output folder
+4. **Template Processing**: Placeholders are replaced with calculated values
 
 ### Custom Templates
 
-Create templates in your Templates folder with these placeholders:
+Create templates in your configured template folder:
 
-- `{{MONTH_YEAR}}` - Report period (e.g., "March 2024")
-- `{{MONTH_HOURS}}` - Total hours worked
-- `{{TABLE_PLACEHOLDER}}` - Detailed timesheet table
-- `{{GENERATION_DATE}}` - Report creation date
-
-**Example template**:
 ```markdown
-# Monthly Report - {{MONTH_YEAR}}
+# Professional Report - {{MONTH_YEAR}}
 
-**Total Hours**: {{MONTH_HOURS}}
+**Client:** {{PROJECT_NAME}}
+**Period:** {{REPORT_PERIOD}}
+**Generated:** {{GENERATION_DATE}}
 
-## Timesheet Details
+## Executive Summary
+This report summarizes {{MONTH_HOURS}} hours of work completed during {{MONTH_YEAR}}.
+
+**Financial Summary:**
+- Total Hours: {{MONTH_HOURS}}
+- Total Value: {{TOTAL_VALUE}}
+- Average Rate: {{CURRENCY}}X/hour
+
+{{REMAINING_HOURS}}
+
+## Detailed Breakdown
 {{TABLE_PLACEHOLDER}}
 
----
-*Generated on {{GENERATION_DATE}}*
+## Next Steps
+<!-- Add your follow-up items here -->
 ```
 
 ## Settings Reference
 
-### Basic Settings
+### Basic Configuration
 - **Timesheet Folder**: Where your timesheet files are stored
 - **Currency Symbol**: Display currency (€, $, £, etc.)
 - **Hours Per Workday**: Standard working hours (for utilization calculations)
-- **Auto-refresh**: How often to update the report (minutes)
+- **Auto-refresh**: How often to update reports (minutes)
+- **Debug Mode**: Enable detailed logging for troubleshooting
 
-### Project Configuration
-- **Project Name**: Display name for current project
+### Project Settings
+- **Project Name**: Display name for reports
 - **Project Type**: Hourly, Fixed-Hour Budget, or Retainer
 - **Budget Hours**: Total hours (for budget/retainer projects)
-- **Default Rate**: Fallback hourly rate
-- **Project Deadline**: Optional target date
+- **Default Rate**: Fallback hourly rate when not specified in frontmatter
+- **Project Deadline**: Optional target completion date
 
-### Report Settings
-- **Template Folder**: Location of report templates
+### Report Generation
+- **Template Folder**: Location of your report templates
 - **Output Folder**: Where generated reports are saved
-- **Default Template**: Template for monthly reports
+- **Default Template**: Template to use when none specified
 
-### Chart Customization
-- **Style Settings Integration**: If you have Style Settings plugin installed, customize all chart colors through the familiar Style Settings interface
-- **Theme-Aware Colors**: Charts automatically use your current theme's accent colors when Style Settings is enabled
-- **Manual Override**: Disable Style Settings integration to use custom color values
-- **Real-time Updates**: Color changes apply immediately without restarting Obsidian
-
-## Theme Integration
-
-### Style Settings Plugin Support
-
-For the best visual experience, install the [Style Settings plugin](obsidian://show-plugin?id=obsidian-style-settings). This enables:
-
-**Automatic Theme Integration:**
-- Chart colors automatically match your current theme
-- Seamless light/dark theme transitions
-- Colors update when you change themes
-
-**Advanced Customization:**
-1. Install Style Settings plugin
-2. Go to Settings → Style Settings
-3. Find "Timesheet Report" section
-4. Customize chart colors, interface spacing, and visual elements
-5. Changes apply instantly to all charts and embeds
-
-**Available Customizations:**
-- **Chart Colors**: Primary (hours), Secondary (utilization), Success (revenue), Accent (budget)
-- **Interface**: Summary card border radius, chart height, embed spacing
-- **Theme Variants**: Separate color schemes for light and dark themes
-
-### Manual Color Settings
-
-If you prefer manual control or don't have Style Settings:
-1. Go to Settings → Timesheet Report → Appearance
-2. Disable "Use Style Settings for Colors"
-3. Set custom hex color values
-4. Colors will remain fixed regardless of theme changes
+### Theme Integration
+- **Style Settings**: Automatic theme color matching (if plugin installed)
+- **Manual Colors**: Custom chart colors when Style Settings disabled
 
 ## Advanced Features
 
+### Official Obsidian API Integration
+
+This plugin is built using **only official Obsidian APIs**:
+
+- **Metadata Cache**: Fast frontmatter access via `app.metadataCache.getFileCache()`
+- **Vault API**: All file operations use `app.vault.getFileByPath()`, `app.vault.cachedRead()`, etc.
+- **Folder Management**: Recursive folder creation with `app.vault.createFolder()`
+- **UI Components**: Native Obsidian components (`ButtonComponent`, `DropdownComponent`, `Notice`)
+
+**Benefits**:
+- **Performance**: Leverages Obsidian's optimized metadata caching
+- **Reliability**: No manual YAML parsing or direct file system access
+- **Compatibility**: Future-proof against Obsidian API changes
+- **Type Safety**: Full TypeScript integration with Obsidian's types
+
 ### Dynamic Target Hours
 
-For hourly projects, the plugin automatically calculates monthly targets by:
-1. Counting working days (Monday-Friday) in each month
-2. Multiplying by your "Hours Per Workday" setting
-3. Adjusting for holidays and varying month lengths
+For hourly projects, the plugin automatically calculates monthly targets:
+1. Counts working days (Monday-Friday) in each month
+2. Multiplies by your "Hours Per Workday" setting
+3. Adjusts for holidays and varying month lengths
 
 Example: May 2024 with 23 working days × 8 hours = 184 target hours
 
@@ -358,79 +365,86 @@ For multiple projects, consider separate vaults:
 └── Budget Tracking/
 ```
 
-Benefits:
-- Independent project settings
-- Client-specific privacy
-- Separate billing and reporting
-- Tailored templates per project
-
 ### Performance Optimization
 
-- **Filter embedded reports** when possible to improve speed
-- **Use compact size** for frequently-viewed pages
-- **Limit concurrent embeds** on the same page
-- **Archive old timesheet files** to dedicated folders
+- **Metadata Cache**: All frontmatter access uses Obsidian's cache for speed
+- **Filter Embedded Reports**: Use WHERE clauses to limit data processing
+- **Compact Displays**: Use `SIZE compact` for frequently-viewed pages
+- **Archive Strategy**: Move old timesheet files to subfolders when needed
 
 ## Troubleshooting
 
-### Common Issues
+### Data Issues
 
 **No data showing in reports**:
-- Check timesheet folder path in settings
-- Verify timesheet files have proper YAML frontmatter
-- Ensure dates are in YYYY-MM-DD format
+- ✅ Check timesheet folder path in settings
+- ✅ Verify frontmatter format: `hours: 8.5` (not `hours: "8.5"`)
+- ✅ Ensure `worked: true` or omit (defaults to true)
+- ✅ Check date format: YYYY-MM-DD in filename or frontmatter
 
 **Incorrect calculations**:
-- Verify `hours` field in timesheet files
-- Check `per-hour` rates are set correctly
-- Confirm `worked: true` for active work days
+- ✅ Verify `hours` field is a number in frontmatter
+- ✅ Check `per-hour` rates are numbers, not strings
+- ✅ Confirm file dates are correctly parsed (check debug mode)
 
-**Charts not displaying**:
-- Ensure you have timesheet data for the selected period
-- Check browser console for JavaScript errors
-- Try refreshing the view
+### Report Generation Issues
 
-**Budget tracking not visible**:
-- Set Project Type to "Fixed Hour Budget" or "Retainer"
-- Configure Budget Hours with a value > 0
-- Verify timesheet files include project hours
+**Template errors**:
+- ✅ Verify template folder path exists
+- ✅ Check template file permissions
+- ✅ Ensure template contains `{{TABLE_PLACEHOLDER}}`
+- ✅ Validate placeholder syntax (double curly braces)
+
+**Output folder issues**:
+- ✅ Confirm output folder path in settings
+- ✅ Check folder permissions for writing
+- ✅ Ensure no file name conflicts
+
+### Chart Display Issues
+
+**Charts not showing**:
+- ✅ Verify timesheet data exists for selected period
+- ✅ Check browser console for JavaScript errors
+- ✅ Try refreshing the view (Ctrl+R or Cmd+R)
+- ✅ Ensure hours > 0 in your frontmatter
 
 **Embedding syntax errors**:
-- Check query syntax for typos
-- Ensure proper capitalization (WHERE, VIEW, etc.)
-- Verify filter conditions match your data
+- ✅ Check query syntax: `WHERE`, `VIEW`, `CHART` (case-sensitive)
+- ✅ Verify string values in quotes: `project = "Project Name"`
+- ✅ Ensure proper date format: `"2024-03-15"`
 
 ### Debug Mode
 
 Enable debug mode in settings for detailed logging:
 - File processing information
-- Data calculation steps  
-- Error details and suggestions
+- Frontmatter parsing details
+- Date extraction attempts
+- Error messages with suggestions
 
-## Development & Customization
+Console output shows:
+```
+[Timesheet Plugin] Processing file: Timesheets/2024-03-15.md
+[Timesheet Plugin] Frontmatter found: {hours: 8.5, client: "Acme"}
+[Timesheet Plugin] Date extracted: 2024-03-15
+```
+
+## API & Development
 
 ### File Structure
 ```
 src/
-├── main.ts              # Plugin entry point
-├── view.ts              # Main report view
-├── settings.ts          # Configuration UI
-├── data-processor.ts    # Data processing logic
-├── chart-renderer.ts    # Chart visualization
-├── report-generator.ts  # Report creation
-├── embed-processor.ts   # Embedding system
-└── query/               # Grammar-based query parser
-    ├── tokenizer.ts     # Lexical analysis
-    ├── parser.ts        # Syntax analysis & AST
-    ├── interpreter.ts   # Query execution
-    └── ast.ts           # AST node definitions
-
-tests/
-└── parser.test.ts       # Parser unit tests
-
-examples/
-├── query-examples.md    # Query syntax examples
-└── usage-examples.ts    # TypeScript usage patterns
+├── main.ts                    # Plugin entry point
+├── view.ts                    # Main report view
+├── settings.ts                # Configuration UI with official components
+├── data-processor.ts          # Data extraction via metadata cache
+├── chart-renderer.ts          # Chart visualization
+├── report-generator.ts        # Report creation using vault API
+├── template-manager.ts        # Template handling via file API
+├── timesheet-data-extractor.ts # Frontmatter processing
+└── query/                     # Grammar-based query parser
+    ├── tokenizer.ts           # Lexical analysis
+    ├── parser.ts              # Syntax analysis & AST
+    └── interpreter.ts         # Query execution
 ```
 
 ### Building from Source
@@ -439,21 +453,34 @@ git clone [repository-url]
 cd timesheet-report-plugin
 npm install
 npm run build
-npm test  # Run Jest test suite
+npm test
 ```
 
-### Contributing
+### API Usage Examples
 
-Contributions welcome! The grammar-based parser architecture makes it easy to add new features:
+**Reading frontmatter** (official way):
+```typescript
+const cache = app.metadataCache.getFileCache(file);
+const frontmatter = cache?.frontmatter;
+const hours = frontmatter?.hours || 0;
+```
 
-**Adding New Query Features:**
-1. Add tokens to `tokenizer.ts`
-2. Define AST nodes in `ast.ts`
-3. Extend parser rules in `parser.ts`
-4. Add interpreter logic in `interpreter.ts`
-5. Update tests and documentation
+**File operations** (official way):
+```typescript
+const file = app.vault.getFileByPath(path);
+const content = await app.vault.cachedRead(file);
+await app.vault.create(newPath, content);
+```
 
-See `examples/usage-examples.ts` for development patterns.
+## Contributing
+
+Contributions welcome! The refactored codebase uses:
+
+- **Official Obsidian APIs only** - No direct file system access
+- **TypeScript strict mode** - Full type safety
+- **Metadata Cache** - Fast frontmatter access
+- **Grammar-based parser** - Extensible query language
+- **Jest testing** - Comprehensive test coverage
 
 ## License
 
@@ -462,22 +489,12 @@ MIT License - see `LICENSE` file for details.
 ## Support
 
 - **Issues**: GitHub repository issues
-- **Query Documentation**: See `examples/query-examples.md` for complete syntax guide
-- **API Documentation**: See `examples/usage-examples.ts` for TypeScript patterns
+- **Documentation**: Complete examples in this README
 - **Community**: Obsidian Discord #plugin-dev channel
-
-## Parser Architecture
-
-Built with a professional-grade parser featuring:
-- **Lexical Analysis**: Robust tokenization with line/column error reporting
-- **Syntax Analysis**: Grammar-based parsing with detailed error messages
-- **Type Safety**: Full TypeScript types throughout the AST
-- **Extensibility**: Easy to add new operators, clauses, and features
-- **Performance**: Fast parsing suitable for real-time use
-- **Jest Testing**: Comprehensive test suite using Jest framework
+- **API Questions**: All file operations use official Obsidian TypeScript APIs
 
 ---
 
 **Made with ❤️ for the Obsidian community**
 
-Transform your timesheet data into actionable insights with visual reports, budget tracking, and seamless integration into your knowledge management workflow.
+Transform your timesheet data into actionable insights with visual reports, budget tracking, and seamless integration into your knowledge management workflow - all powered by Obsidian's official APIs for maximum reliability and performance.

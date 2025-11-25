@@ -559,29 +559,11 @@ export class TimesheetReportView extends ItemView {
       let failCount = 0;
 
       for (const file of filesToCheck) {
-        // Read file content
-        const content = await this.plugin.app.vault.read(file);
-
-        // Extract YAML frontmatter if present
-        let yamlSection = '';
-        let inYaml = false;
-        const lines = content.split('\n');
-
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].trim() === '---') {
-            if (!inYaml) {
-              inYaml = true;
-            } else {
-              break;
-            }
-          } else if (inYaml) {
-            yamlSection += lines[i] + '\n';
-          }
-        }
+        // Use Obsidian's metadata cache to get frontmatter
+        const cache = this.plugin.app.metadataCache.getFileCache(file);
 
         // Try to extract date using dataProcessor methods
-        // We're accessing a method that's intended for internal use, but for diagnostics it's helpful
-        const date = this.dataProcessor.extractDateFromFile(file, yamlSection);
+        const date = this.dataProcessor.extractDateFromFile(file, cache);
 
         const row = tbody.createEl('tr');
         row.createEl('td', { text: file.basename });
@@ -593,8 +575,8 @@ export class TimesheetReportView extends ItemView {
           let source = 'unknown';
           if (file.basename.match(/\d{4}-\d{2}-\d{2}/)) {
             source = 'filename';
-          } else if (yamlSection.match(/date:\s*[\d-/]+/)) {
-            source = 'yaml';
+          } else if (cache?.frontmatter?.date) {
+            source = 'frontmatter';
           } else if (file.path.match(/\/\d{4}-\d{2}-\d{2}/)) {
             source = 'path';
           }

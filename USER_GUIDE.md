@@ -1,253 +1,652 @@
 # Timesheet Report Plugin - User Guide
 
-This guide provides detailed examples and advanced usage scenarios for the Timesheet Report Plugin. While the README.md covers the basics, this guide dives deep into real-world workflows and advanced features.
+This comprehensive guide covers everything you need to know about using the Timesheet Report Plugin effectively, from basic setup to advanced features.
 
 ## Table of Contents
 
-- [Advanced Timesheet Formats](#advanced-timesheet-formats)
-- [Project Workflow Examples](#project-workflow-examples)
-- [Advanced Embedding Techniques](#advanced-embedding-techniques)
-- [Custom Report Templates](#custom-report-templates)
-- [Multi-Project Management](#multi-project-management)
-- [Performance Optimization](#performance-optimization)
-- [Troubleshooting Guide](#troubleshooting-guide)
+1. [Quick Setup](#quick-setup)
+2. [Frontmatter Reference](#frontmatter-reference)
+3. [Report Templates](#report-templates)
+4. [Project Types & Workflows](#project-types--workflows)
+5. [Advanced Timesheet Formats](#advanced-timesheet-formats)
+6. [Embedding Reports](#embedding-reports)
+7. [Report Generation](#report-generation)
+8. [Performance & Best Practices](#performance--best-practices)
+9. [Troubleshooting](#troubleshooting)
+
+## Quick Setup
+
+### 1. Initial Configuration
+
+1. **Install the plugin** from Community Plugins
+2. **Configure basic settings**:
+   - Timesheet Folder: `Timesheets` (or your preferred location)
+   - Currency Symbol: `$` (or `€`, `£`, etc.)
+   - Hours Per Workday: `8` (for utilization calculations)
+
+3. **Set up your project**:
+   - Project Name: Your current project/client
+   - Project Type: Choose based on your billing model
+   - Default Rate: Your standard hourly rate (optional)
+
+### 2. Create Your First Timesheet
+
+Create a file named `2024-03-15.md` in your Timesheets folder:
+
+```markdown
+---
+hours: 8.5
+per-hour: 75
+client: Acme Corporation
+work-order: Website Redesign
+worked: true
+---
+
+# Daily Work Log - March 15, 2024
+
+## Tasks Completed
+- Implemented new user authentication system
+- Fixed responsive design issues on mobile
+- Client meeting to review progress
+
+## Notes
+Productive day with good progress on the authentication module. Client was pleased with the mobile improvements.
+```
+
+### 3. View Your Report
+
+1. Click the calendar-clock icon in the ribbon, or
+2. Use Command Palette → "Open Timesheet Report"
+3. Your data will automatically appear in charts and summaries
+
+## Frontmatter Reference
+
+### What Is Frontmatter?
+
+Frontmatter is the YAML data block at the top of your markdown files (between `---` lines). This is where you put **data that the plugin processes** for calculations, charts, and reports.
+
+### Core Properties
+
+```yaml
+---
+# REQUIRED: Hours worked that day
+hours: 8.5              # Number or string, supports decimals
+
+# OPTIONAL: Billing and project info
+per-hour: 75            # Hourly rate (number or string)
+client: Acme Corp       # Client name (string)
+work-order: Project X   # Project/task identifier (string)
+project: Website Redesign # Alternative to work-order
+
+# OPTIONAL: Control processing
+worked: true            # Whether to count this day (default: true)
+date: 2024-03-15       # Date override (usually auto-detected from filename)
+
+# OPTIONAL: Organization
+tags: [consulting, web] # For file organization
+---
+```
+
+### Property Details
+
+#### Required Properties
+
+**`hours`** - Total hours worked that day
+```yaml
+hours: 8.5          # Decimal hours
+hours: "8.5"        # String format also works
+hours: 0            # PTO or non-working day
+```
+
+#### Billing Properties
+
+**`per-hour`** - Hourly billing rate
+```yaml
+per-hour: 75        # Standard rate
+per-hour: 125       # Premium rate for this day
+per-hour: 0         # Non-billable work
+```
+
+**`client`** - Client identifier
+```yaml
+client: Acme Corp           # Single client
+client: "Client with spaces" # Use quotes for spaces
+```
+
+**`work-order`** - Project or work order
+```yaml
+work-order: Website Redesign    # Project name
+work-order: WO-2024-001        # Work order number
+work-order: "Phase 1: Discovery" # Multi-word with quotes
+```
+
+**`project`** - Alternative to work-order
+```yaml
+project: Mobile App Development
+# Use either 'project' or 'work-order', not both
+```
+
+#### Control Properties
+
+**`worked`** - Whether this counts as a working day
+```yaml
+worked: true        # Default: counts toward hours/utilization
+worked: false       # PTO, holiday, sick day - excluded from calculations
+```
+
+**`date`** - Date override (rarely needed)
+```yaml
+date: 2024-03-15    # Only needed if filename doesn't contain date
+date: 2024-12-25    # Useful for holiday tracking
+```
+
+### Data Processing Notes
+
+- **Metadata Cache**: The plugin uses Obsidian's official metadata cache for fast, reliable frontmatter access
+- **Type Flexibility**: Numbers can be entered as `8.5` or `"8.5"` - both work
+- **Default Values**: If `worked` is omitted, it defaults to `true`
+- **Project Identification**: The plugin looks for `work-order` first, then `project`, then `client` for task descriptions
+
+## Report Templates
+
+### What Are Report Templates?
+
+Report templates control the **presentation and formatting** of generated monthly reports. They contain placeholder variables that get replaced with calculated values from your timesheet data.
+
+### Template Location
+
+Templates are stored in your configured "Report Template Folder" (default: `Templates`). Create `.md` files with template placeholders.
+
+### Available Placeholders
+
+#### Project Information
+```markdown
+{{PROJECT_NAME}}        # From plugin settings
+{{PROJECT_TYPE}}        # Display-friendly project type
+{{CURRENCY}}           # Currency symbol from settings
+```
+
+#### Report Data
+```markdown
+{{MONTH_YEAR}}         # "March 2024"
+{{REPORT_PERIOD}}      # Same as MONTH_YEAR
+{{MONTH_HOURS}}        # Total hours from frontmatter
+{{TOTAL_VALUE}}        # Calculated revenue (hours × rates)
+{{REMAINING_HOURS}}    # Budget hours remaining (budget projects only)
+```
+
+#### Date/Time
+```markdown
+{{GENERATION_DATE}}    # Date report was created
+{{CURRENT_YEAR}}       # Current year
+{{CURRENT_MONTH}}      # Current month number
+{{CURRENT_DATE}}       # Today's date (YYYY-MM-DD)
+```
+
+#### Content Insertion
+```markdown
+{{TABLE_PLACEHOLDER}}  # Where the detailed timesheet table appears
+```
+
+### Example Templates
+
+#### Simple Professional Report
+
+```markdown
+# {{PROJECT_NAME}} - {{MONTH_YEAR}} Report
+
+**Client:** {{PROJECT_NAME}}  
+**Period:** {{REPORT_PERIOD}}  
+**Generated:** {{GENERATION_DATE}}
+
+## Executive Summary
+
+During {{MONTH_YEAR}}, a total of **{{MONTH_HOURS}} hours** were logged for this project.
+
+**Financial Summary:**
+- Total Hours: {{MONTH_HOURS}}
+- Total Value: {{TOTAL_VALUE}}
+
+## Detailed Breakdown
+
+{{TABLE_PLACEHOLDER}}
+
+---
+*This report was generated using the Obsidian Timesheet Report Plugin.*
+```
+
+#### Budget Project Report
+
+```markdown
+# Project Status Report - {{MONTH_YEAR}}
+
+## Project: {{PROJECT_NAME}}
+**Type:** {{PROJECT_TYPE}}  
+**Report Period:** {{MONTH_YEAR}}
+
+## Budget Status
+- **Hours This Month:** {{MONTH_HOURS}}
+- **Remaining Budget:** {{REMAINING_HOURS}} hours
+- **Total Project Value:** {{TOTAL_VALUE}}
+
+## Work Breakdown
+{{TABLE_PLACEHOLDER}}
+
+## Next Steps
+<!-- Add your follow-up items here -->
+
+---
+**Report generated on {{GENERATION_DATE}}**
+```
+
+#### Executive Dashboard
+
+```markdown
+# Executive Summary - {{MONTH_YEAR}}
+
+## {{PROJECT_NAME}} Status
+
+**Key Metrics:**
+- Hours Delivered: {{MONTH_HOURS}}
+- Value Created: {{TOTAL_VALUE}}
+- Budget Remaining: {{REMAINING_HOURS}}
+
+## Monthly Activity
+{{TABLE_PLACEHOLDER}}
+
+**Next Review:** [Add date]  
+**Action Items:** [Add items]
+```
+
+### Template Management
+
+#### Creating Templates
+
+1. Navigate to your Template folder
+2. Create a new `.md` file
+3. Add placeholders where you want dynamic content
+4. Save the file
+
+#### Setting Default Template
+
+1. Go to Plugin Settings → Report Generation
+2. Set "Default Report Template" to your preferred template path
+3. This template will be used when no specific template is chosen
+
+#### Template Validation
+
+The plugin automatically:
+- Validates template paths exist
+- Checks file permissions
+- Provides helpful error messages for missing placeholders
+- Falls back to built-in template if custom template fails
+
+## Project Types & Workflows
+
+### Hourly/Time & Materials
+
+**Best for:** Traditional consulting, ongoing maintenance, open-ended work
+
+**Setup:**
+```yaml
+# Plugin Settings
+Project Type: Hourly/Time & Materials
+Default Rate: 75
+Hours Per Workday: 8
+```
+
+**Timesheet Example:**
+```markdown
+---
+hours: 8.5
+per-hour: 75
+client: Consulting Client
+work-order: Database Optimization
+---
+```
+
+**What You Get:**
+- Utilization tracking (hours vs. target)
+- Revenue calculations
+- Efficiency trends
+- "Potential Additional" revenue analysis
+
+### Fixed-Hour Budget
+
+**Best for:** Fixed-scope projects, MVPs, specific deliverables
+
+**Setup:**
+```yaml
+# Plugin Settings
+Project Type: Fixed Hour Budget
+Budget Hours: 120
+Project Deadline: 2024-06-30
+```
+
+**Timesheet Example:**
+```markdown
+---
+hours: 6.0
+client: MVP Client
+work-order: User Authentication
+per-hour: 85
+---
+```
+
+**What You Get:**
+- Budget consumption tracking ("67/120 hours used")
+- Progress percentage
+- Burn-down charts
+- Deadline pace indicators
+- Remaining hours alerts
+
+### Retainer/Block Hours
+
+**Best for:** Monthly retainers, pre-purchased hour blocks, ongoing relationships
+
+**Setup:**
+```yaml
+# Plugin Settings
+Project Type: Retainer/Block Hours
+Budget Hours: 40  # Monthly retainer
+```
+
+**Timesheet Example:**
+```markdown
+---
+hours: 4.5
+client: Retainer Client
+work-order: Monthly Support
+per-hour: 100
+---
+```
+
+**What You Get:**
+- Block hour usage tracking
+- Monthly consumption trends
+- Efficiency analysis
+- Renewal timing insights
 
 ## Advanced Timesheet Formats
 
 ### Complex Project Structure
 
-For projects with multiple clients and varying rates:
+For projects with multiple work streams or detailed tracking:
 
-```md
+```markdown
 ---
-tags: [Daily]
 hours: 8.5
-worked: true
-per-hour: 85
-client:
-  - "Client A"
-work-order:
-  - "Website Redesign"
+per-hour: 75
+client: Enterprise Client
+work-order: Platform Migration
+tags: [consulting, migration, enterprise]
 ---
 
-# Multi-Client Work Day - 2024-03-15
+# Platform Migration - March 15, 2024
 
 ## Work Summary
-- **Hours**: 8.5
-- **Rate**: $85/hr
-- **Total**: $722.50
-- **Client**: Client A
-- **Project**: Website Redesign
+**Focus:** Database schema migration and API updates
+**Environment:** Staging and production systems
+**Team Collaboration:** 2 hours with DevOps team
 
 ## Tasks Completed
-- UI Design (3 hours)
-- Client Review (1.5 hours) 
-- Revisions (1 hour)
-- API Development (2 hours)
-- Testing (1 hour)
 
-## Notes
-Multiple tasks across different project areas. Good productivity day with client feedback incorporated.
+### Database Migration (4.5 hours)
+- Analyzed existing schema structure
+- Created migration scripts for user tables
+- Tested migration on staging environment
+- Documented rollback procedures
+
+### API Development (3.0 hours)
+- Updated authentication endpoints
+- Implemented new data validation
+- Added error handling for edge cases
+
+### Team Coordination (1.0 hours)
+- Daily standup meeting
+- Code review with senior developer
+- Planning session for next sprint
+
+## Blockers & Risks
+- Waiting on client approval for schema changes
+- Production deployment window scheduled for weekend
+
+## Tomorrow's Plan
+- Finalize migration scripts
+- Complete API testing suite
+- Prepare production deployment checklist
 ```
 
 ### Time Tracking with Breaks
 
-Detailed time tracking including non-billable time:
+For detailed time allocation tracking:
 
-```md
+```markdown
 ---
-tags: [Daily]
-hours: 6.5
-worked: true
+hours: 7.5
+per-hour: 80
+client: Detailed Tracking Client
+work-order: Web Application Development
+---
+
+# Detailed Time Log - March 15, 2024
+
+## Time Allocation
+
+### Morning Session (9:00 AM - 12:30 PM) - 3.5 hours
+**Focus:** Frontend development
+
+- **9:00-10:30** (1.5h): Component architecture planning
+- **10:30-10:45**: Break
+- **10:45-12:30** (1.75h): React component implementation
+- **12:30-1:30**: Lunch break
+
+### Afternoon Session (1:30 PM - 5:00 PM) - 3.5 hours
+**Focus:** Backend integration
+
+- **1:30-3:00** (1.5h): API endpoint development
+- **3:00-3:15**: Break
+- **3:15-4:45** (1.5h): Database query optimization
+- **4:45-5:00** (0.25h): Daily summary and planning
+
+### Evening Session (7:00 PM - 7:30 PM) - 0.5 hours
+**Focus:** Documentation
+
+- Code documentation updates
+- Tomorrow's task planning
+
+## Notes
+Productive day with solid progress on both frontend and backend. The new component architecture is working well and should speed up future development.
+```
+
+### Multi-Client Day
+
+For freelancers working with multiple clients:
+
+```markdown
+---
+hours: 8.0
+# Note: Use average rate or most common rate for multi-client days
 per-hour: 75
-client:
-  - "Client ABC"
-work-order:
-  - "Platform Development"
+tags: [freelance, multi-client]
 ---
 
-# Platform Development - 2024-03-15
+# Multi-Client Freelance Day - March 15, 2024
 
 ## Work Summary
-- **Hours**: 6.5
-- **Rate**: $75/hr
-- **Total**: $487.50
-- **Client**: Client ABC
-- **Project**: Platform Development
 
-## Tasks Completed
-- Client consultation and requirements review
-- Backend development and API endpoints
-- Team meetings and project coordination
-- Technical documentation updates
-
-## Notes
-Productive day with good progress on platform features. Client meeting went well with positive feedback on current direction.
-```
-
-### Project Milestone Tracking
-
-For budget projects with milestone tracking:
-
-```md
----
-tags: [Daily]
-hours: 7
-worked: true
-per-hour: 90
-client:
-  - "Startup XYZ"
-work-order:
-  - "MVP Development"
----
-
-# MVP Development - Sprint 3 Final - 2024-03-15
-
-## Work Summary
-- **Hours**: 7
-- **Rate**: $90/hr
-- **Total**: $630
-- **Client**: Startup XYZ
-- **Project**: MVP Development
-
-## Today's Accomplishments
-- User authentication flow implementation
-- Database migration scripts
-- API endpoint testing
-- UI Polish and refinements
-
-## Notes
-Sprint 3 final day - good progress on MVP features. Authentication system is working well and testing is showing positive results.
-```
-
-## Project Workflow Examples
-
-### Agile Development Workflow
-
-**Sprint Planning Integration:**
-
-```md
----
-tags: [Daily]
-hours: 8
-worked: true
-per-hour: 85
-client:
-  - "Client XYZ"
-work-order:
-  - "User Profile Enhancement"
----
-
-# User Profile Enhancement - 2024-03-15
-
-## Work Summary
-- **Hours**: 8
-- **Rate**: $85/hr
-- **Total**: $680
-- **Client**: Client XYZ
-- **Project**: User Profile Enhancement
-
-## Tasks Completed
-- Profile photo upload functionality
-- Email preferences system
-- Privacy settings implementation (partial)
-
-## Notes
-Good progress on user profile features. Photo upload is working well, email preferences are complete. Privacy settings need another 2-3 hours tomorrow.
-```
-
-### Client Consulting Workflow
-
-**Weekly Client Retainer:**
-
-```md
----
-tags: [Consulting]
-hours: 6
-worked: true
-per-hour: 120
-client:
-  - "Acme Company"
-work-order:
-  - "Strategic Advisory"
----
-
-# Acme Company Strategic Advisory - 2024-03-15
-
-## Work Summary
-- **Hours**: 6
-- **Rate**: $120/hr
-- **Total**: $720
-- **Client**: Acme Company
-- **Project**: Strategic Advisory
-
-## Focus Areas
-
-### Technology Architecture Review
-- Evaluated current microservices setup
-- Identified scalability bottlenecks  
-- Proposed migration to event-driven architecture
-
-### Team Process Optimization
-- Facilitated Agile retrospective
-- Implemented new CI/CD pipeline
-- Coached team leads on sprint planning
-
-## Deliverables
-- Architecture assessment document
-- Process improvement roadmap
-- Technology stack recommendations (draft)
-
-## Next Steps
-- Finalize technology recommendations
-- Budget planning for Q2 initiatives
-- Team training session on new processes
-```
-
-### Freelance Business Workflow
-
-**Multi-Client Day Management:**
-
-```md
----
-tags: [Daily]
-hours: 9
-worked: true
-per-hour: 95
-client:
-  - "ClientA"
-  - "ClientB" 
-  - "ClientC"
-work-order:
-  - "Mobile App"
-  - "API Integration"
-  - "Website Maintenance"
----
-
-# Multi-Client Freelance Day - 2024-03-15
-
-## Work Summary
-- **Total Hours**: 9
-- **Average Rate**: $95/hr
-- **Total Revenue**: $855
-- **Clients**: 3 different projects
+**Total Hours:** 8.0  
+**Clients Served:** 3  
+**Primary Focus:** Development and consulting
 
 ## Project Breakdown
-- **Mobile App Development** (4 hours): Core feature implementation
-- **API Integration** (3 hours): Backend service connections  
-- **Website Maintenance** (2 hours): Updates and bug fixes
 
-## Notes
-Productive multi-client day with good progress across all projects. Mobile app features are coming together well, API integration is on schedule, and website maintenance completed successfully.
+### Client A - E-commerce Platform (4.0 hours)
+**Rate:** $85/hour  
+**Work Order:** Checkout System Enhancement
 
-## Tomorrow's Plan
-- Focus on single client (StartupA) for deeper work session
-- Target: Complete remaining mobile app features
+**Tasks:**
+- Payment gateway integration (2.5h)
+- Shopping cart bug fixes (1.0h)
+- Client meeting and demo (0.5h)
+
+**Notes:** Successfully integrated Stripe payment system. Client approved for production deployment.
+
+### Client B - Mobile App Consulting (2.5 hours)
+**Rate:** $100/hour  
+**Work Order:** iOS App Architecture Review
+
+**Tasks:**
+- Code review and analysis (1.5h)
+- Architecture recommendations document (1.0h)
+
+**Notes:** Identified several performance optimization opportunities. Provided detailed recommendations for next development phase.
+
+### Client C - Database Migration (1.5 hours)
+**Rate:** $75/hour  
+**Work Order:** Legacy System Migration
+
+**Tasks:**
+- Migration script testing (1.0h)
+- Documentation updates (0.5h)
+
+**Notes:** Migration scripts tested successfully on staging. Ready for production deployment next week.
+
+## Daily Summary
+
+**Revenue Breakdown:**
+- Client A: $340 (4.0h × $85)
+- Client B: $250 (2.5h × $100)  
+- Client C: $112.50 (1.5h × $75)
+- **Total Daily Revenue:** $702.50
+
+**Key Accomplishments:**
+- Completed major milestone for Client A
+- Delivered strategic recommendations for Client B
+- Moved Client C project to final phase
+
+**Tomorrow's Priorities:**
+- Client A: Production deployment
+- Client B: Follow-up meeting
+- Client C: Production migration
 ```
 
-## Advanced Embedding Techniques
+## Embedding Reports
 
-### Executive Dashboard
+### Basic Embedding Syntax
+
+Insert live timesheet data anywhere in your vault using code blocks with the `timesheet` language identifier:
+
+````markdown
+```timesheet
+WHERE year = 2024
+VIEW summary
+```
+````
+
+### Query Components
+
+#### WHERE Clauses
+
+**Filter by time period:**
+```
+WHERE year = 2024
+WHERE month = 3
+WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
+```
+
+**Filter by project data:**
+```
+WHERE client = "Acme Corp"
+WHERE project = "Website Redesign" 
+WHERE work-order = "MVP Development"
+```
+
+**Combine filters:**
+```
+WHERE year = 2024 AND month >= 6
+WHERE client = "Acme Corp" AND hours > 0
+WHERE date BETWEEN "2024-01-01" AND "2024-06-30" AND project = "Migration"
+```
+
+#### VIEW Options
+
+```
+VIEW summary    # Key metrics cards only
+VIEW chart     # Visualizations only
+VIEW table     # Data table only
+VIEW full      # Everything (summary + chart + table)
+```
+
+#### CHART Types
+
+```
+CHART trend     # Hours and utilization over time
+CHART monthly   # Monthly revenue and budget analysis
+CHART budget    # Budget consumption for fixed-hour projects
+```
+
+#### SIZE Options
+
+```
+SIZE compact    # Minimal space for widgets
+SIZE normal     # Standard display
+SIZE detailed   # Full information with all details
+```
+
+### Practical Examples
+
+#### Dashboard Widget
+
+```timesheet
+// Quick stats for daily notes
+WHERE year = 2024 AND month = 3
+VIEW summary
+SIZE compact
+```
+
+#### Project Status Board
+
+```timesheet
+// Current project progress
+WHERE client = "Enterprise Client" AND year = 2024
+VIEW full
+CHART budget
+SIZE detailed
+```
+
+#### Monthly Review
+
+```timesheet
+// Complete monthly analysis
+WHERE year = 2024 AND month = 2
+VIEW full
+CHART trend
+SIZE normal
+```
+
+#### Year-to-Date Summary
+
+```timesheet
+// YTD performance tracking
+WHERE year = 2024
+VIEW summary
+CHART monthly
+SIZE detailed
+```
+
+#### Client-Specific Report
+
+```timesheet
+// All work for specific client
+WHERE client = "Acme Corporation"
+VIEW table
+SIZE normal
+```
+
+### Advanced Embedding Techniques
+
+#### Executive Dashboard
 
 Create a comprehensive business dashboard:
 
@@ -255,655 +654,625 @@ Create a comprehensive business dashboard:
 # Freelance Business Dashboard - Q1 2024
 
 ## Financial Summary
+
+### Current Quarter Performance
 ```timesheet
 WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
 VIEW summary
 SIZE detailed
 ```
 
-## Performance Trends
-```timesheet
-PERIOD current-year
-VIEW chart
-CHART trend
-SIZE detailed
-```
-
-## Budget Projects Status
+### Revenue Trends
 ```timesheet
 WHERE year = 2024
 VIEW chart
-CHART budget
+CHART monthly
 SIZE normal
 ```
 
-## Monthly Breakdown
+## Project Status
+
+### Active Projects
 ```timesheet
-PERIOD last-6-months
+WHERE year = 2024 AND month >= 2
+VIEW table
+SIZE compact
+```
+
+### Budget Projects Status
+```timesheet
+// Fixed-hour project tracking
+WHERE year = 2024
+CHART budget
+VIEW chart
+SIZE normal
+```
+
+## Key Metrics
+
+### Utilization Trends
+```timesheet
+WHERE year = 2024
+CHART trend
+VIEW chart
+SIZE detailed
+```
+
+### This Month's Activity
+```timesheet
+WHERE year = 2024 AND month = 3
+VIEW full
+SIZE normal
+```
+```
+
+#### Weekly Review Template
+
+```markdown
+# Week of March 11-15, 2024
+
+## Weekly Summary
+```timesheet
+WHERE date BETWEEN "2024-03-11" AND "2024-03-15"
+VIEW summary
+SIZE normal
+```
+
+## Daily Breakdown
+```timesheet
+WHERE date BETWEEN "2024-03-11" AND "2024-03-15"
 VIEW table
 SIZE detailed
 ```
 
-## Key Metrics
-- **Q1 Revenue**: $28,450
-- **Avg Hourly Rate**: $92
-- **Utilization**: 78%
-- **Client Satisfaction**: 4.8/5
-```
-
-### Client Status Report
-
-Automated client reporting with live data:
-
-```markdown
-# Client ABC - Monthly Status Report
-
-*Generated: {{date}}*
-
-## Project Overview
+## Performance Analysis
 ```timesheet
-WHERE project = "Client ABC" AND year = 2024
-VIEW summary
-SIZE normal
-```
-
-## Budget Consumption
-```timesheet
-WHERE project = "Client ABC" AND year = 2024
-VIEW chart
-CHART budget
-```
-
-## Recent Activity (Last 30 Days)
-```timesheet
-WHERE project = "Client ABC" AND date BETWEEN "{{last_30_days_start}}" AND "{{today}}"
-VIEW table
-SIZE compact
-```
-
-## Executive Summary
-Based on the data above, the project is progressing well with strong utilization and on-budget performance. Key achievements this month include successful feature deliveries and positive client feedback.
-
-## Next Steps
-1. Continue current development pace
-2. Schedule mid-month check-in
-3. Prepare for final delivery phase
-```
-
-### Daily Planning Integration
-
-Embed timesheet data in daily notes:
-
-```markdown
-# Daily Note - {{date}}
-
-## Yesterday's Performance
-```timesheet
-WHERE date = "{{yesterday}}"
-VIEW summary
-SIZE compact
-```
-
-## This Week's Progress
-```timesheet
-WHERE date BETWEEN "{{week_start}}" AND "{{today}}"
-VIEW table
-SIZE compact
-```
-
-## Today's Plan
-- [ ] Complete feature X (Est: 3 hours)
-- [ ] Client meeting (1 hour)
-- [ ] Code review (1 hour)
-- [ ] Documentation update (2 hours)
-
-**Target**: 7 billable hours
-**Utilization Goal**: 87.5% (7/8 hours)
-```
-
-## Custom Report Templates
-
-### Professional Invoice Template
-
-```markdown
-# Invoice #INV-{{MONTH_YEAR | replace(" ", "-")}}
-**Client**: {{CLIENT_NAME}}
-**Period**: {{MONTH_YEAR}}
-**Generated**: {{GENERATION_DATE}}
-
-## Professional Services Summary
-This invoice covers professional consulting services provided during {{MONTH_YEAR}} totaling **{{MONTH_HOURS}} hours** of engagement.
-
-## Detailed Timesheet
-{{TABLE_PLACEHOLDER}}
-
-## Summary
-- **Total Hours**: {{MONTH_HOURS}}
-- **Hourly Rate**: ${{HOURLY_RATE}}
-- **Subtotal**: ${{SUBTOTAL}}
-- **Tax ({{TAX_RATE}}%)**: ${{TAX_AMOUNT}}
-- **Total Amount**: ${{TOTAL_AMOUNT}}
-
-## Payment Terms
-- **Due Date**: {{DUE_DATE}}
-- **Payment Method**: {{PAYMENT_METHOD}}
-- **Late Fee**: 1.5% per month on overdue amounts
-
----
-*Thank you for your business. Please remit payment within 30 days.*
-```
-
-### Project Completion Report
-
-```markdown
-# Project Completion Report - {{PROJECT_NAME}}
-
-**Client**: {{CLIENT_NAME}}
-**Period**: {{PROJECT_START}} - {{PROJECT_END}}
-**Total Duration**: {{PROJECT_DURATION}} weeks
-
-## Executive Summary
-The {{PROJECT_NAME}} project has been successfully completed on {{GENERATION_DATE}}. This report provides a comprehensive overview of the work performed, timeline adherence, and final deliverables.
-
-## Project Metrics
-- **Total Hours Invested**: {{MONTH_HOURS}}
-- **Budget Utilization**: {{BUDGET_PERCENTAGE}}%
-- **Timeline Performance**: {{TIMELINE_STATUS}}
-- **Scope Changes**: {{SCOPE_CHANGES}}
-
-## Detailed Work Breakdown
-{{TABLE_PLACEHOLDER}}
-
-## Key Achievements
-- ✅ All primary objectives delivered
-- ✅ Quality standards exceeded
-- ✅ Timeline targets met
-- ✅ Client satisfaction: {{SATISFACTION_SCORE}}/5
-
-## Lessons Learned
-- **What Worked Well**: {{SUCCESSES}}
-- **Areas for Improvement**: {{IMPROVEMENTS}}
-- **Recommendations**: {{RECOMMENDATIONS}}
-
-## Next Steps
-{{NEXT_STEPS}}
-
----
-*This concludes the {{PROJECT_NAME}} engagement. Thank you for the opportunity to contribute to your success.*
-```
-
-### Weekly Team Status Template
-
-```markdown
-# Team Status Report - Week of {{WEEK_START}}
-
-**Team**: {{TEAM_NAME}}
-**Sprint**: {{SPRINT_NAME}}
-**Report Generated**: {{GENERATION_DATE}}
-
-## Team Performance Overview
-```timesheet
-PERIOD last-7-days
-VIEW summary
-SIZE normal
-```
-
-## Individual Contributions
-{{TABLE_PLACEHOLDER}}
-
-## Sprint Progress
-- **Story Points Completed**: {{COMPLETED_POINTS}}/{{PLANNED_POINTS}}
-- **Velocity**: {{CURRENT_VELOCITY}} (Target: {{TARGET_VELOCITY}})
-- **Burndown Status**: {{BURNDOWN_STATUS}}
-
-## Blockers & Risks
-{{BLOCKERS_LIST}}
-
-## Upcoming Milestones
-- **{{MILESTONE_1}}**: {{DATE_1}}
-- **{{MILESTONE_2}}**: {{DATE_2}}
-- **Sprint Review**: {{REVIEW_DATE}}
-
-## Action Items
-{{ACTION_ITEMS}}
-```
-
-## Multi-Project Management
-
-### Vault Organization Strategy
-
-For managing multiple clients/projects effectively:
-
-```
-📁 Business/
-├── 📁 Client-ABC-Retainer/
-│   ├── .obsidian/
-│   │   └── plugins/timesheet-report/
-│   ├── Timesheets/
-│   ├── Meeting Notes/
-│   ├── Deliverables/
-│   └── Reports/
-├── 📁 Client-XYZ-MVP/
-│   ├── .obsidian/
-│   ├── Timesheets/
-│   ├── Development/
-│   ├── Testing/
-│   └── Documentation/
-├── 📁 Personal-Learning/
-│   ├── .obsidian/
-│   ├── Timesheets/
-│   ├── Courses/
-│   └── Projects/
-└── 📁 Business-Development/
-    ├── .obsidian/
-    ├── Timesheets/
-    ├── Prospects/
-    └── Marketing/
-```
-
-### Cross-Vault Reporting
-
-**Bash script** for consolidating reports across vaults:
-
-```bash
-#!/bin/bash
-# consolidate-reports.sh
-
-declare -a vaults=(
-    "$HOME/Documents/Obsidian/Client-ABC-Retainer"
-    "$HOME/Documents/Obsidian/Client-XYZ-MVP" 
-    "$HOME/Documents/Obsidian/Personal-Learning"
-)
-
-output_file="consolidated-timesheet-data.csv"
-echo "Date,Hours,Rate,Client,Project,Vault" > "$output_file"
-
-for vault in "${vaults[@]}"; do
-    timesheet_path="$vault/Timesheets"
-    if [[ -d "$timesheet_path" ]]; then
-        find "$timesheet_path" -name "*.md" | while read -r file; do
-            # Extract YAML frontmatter and append to CSV
-            vault_name=$(basename "$vault")
-            echo "Processing: $file -> $vault_name"
-        done
-    fi
-done
-
-echo "Consolidated data saved to: $output_file"
-```
-
-**Python script** for advanced analysis:
-
-```python
-#!/usr/bin/env python3
-# consolidate_reports.py
-
-import os
-import yaml
-import csv
-from pathlib import Path
-import re
-
-vaults = [
-    Path.home() / "Documents/Obsidian/Client-ABC-Retainer",
-    Path.home() / "Documents/Obsidian/Client-XYZ-MVP",
-    Path.home() / "Documents/Obsidian/Personal-Learning"
-]
-
-def extract_yaml_frontmatter(file_path):
-    """Extract YAML frontmatter from markdown file"""
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # Find YAML frontmatter
-    match = re.match(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
-    if match:
-        try:
-            return yaml.safe_load(match.group(1))
-        except yaml.YAMLError:
-            return {}
-    return {}
-
-consolidated_data = []
-
-for vault in vaults:
-    timesheet_path = vault / "Timesheets"
-    if timesheet_path.exists():
-        for file_path in timesheet_path.glob("*.md"):
-            frontmatter = extract_yaml_frontmatter(file_path)
-            
-            if frontmatter.get('hours'):
-                consolidated_data.append({
-                    'date': file_path.stem,
-                    'hours': frontmatter.get('hours', 0),
-                    'rate': frontmatter.get('per-hour', 0),
-                    'client': frontmatter.get('client', ['Unknown'])[0],
-                    'project': frontmatter.get('work-order', ['Unknown'])[0],
-                    'vault': vault.name
-                })
-
-# Export to CSV
-with open('consolidated-timesheet-data.csv', 'w', newline='') as csvfile:
-    fieldnames = ['date', 'hours', 'rate', 'client', 'project', 'vault']
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    
-    writer.writeheader()
-    for row in consolidated_data:
-        writer.writerow(row)
-
-print(f"Consolidated {len(consolidated_data)} timesheet entries")
-```
-
-**Node.js script** for JavaScript/TypeScript users:
-
-```javascript
-#!/usr/bin/env node
-// consolidate-reports.js
-
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml'); // npm install js-yaml
-
-const vaults = [
-    path.join(process.env.HOME, 'Documents/Obsidian/Client-ABC-Retainer'),
-    path.join(process.env.HOME, 'Documents/Obsidian/Client-XYZ-MVP'),
-    path.join(process.env.HOME, 'Documents/Obsidian/Personal-Learning')
-];
-
-function extractYamlFrontmatter(filePath) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
-    
-    if (match) {
-        try {
-            return yaml.load(match[1]);
-        } catch (e) {
-            return {};
-        }
-    }
-    return {};
-}
-
-const consolidatedData = [];
-
-vaults.forEach(vault => {
-    const timesheetPath = path.join(vault, 'Timesheets');
-    
-    if (fs.existsSync(timesheetPath)) {
-        const files = fs.readdirSync(timesheetPath)
-            .filter(file => file.endsWith('.md'));
-        
-        files.forEach(file => {
-            const filePath = path.join(timesheetPath, file);
-            const frontmatter = extractYamlFrontmatter(filePath);
-            
-            if (frontmatter.hours) {
-                consolidatedData.push({
-                    date: path.parse(file).name,
-                    hours: frontmatter.hours || 0,
-                    rate: frontmatter['per-hour'] || 0,
-                    client: frontmatter.client ? frontmatter.client[0] : 'Unknown',
-                    project: frontmatter['work-order'] ? frontmatter['work-order'][0] : 'Unknown',
-                    vault: path.basename(vault)
-                });
-            }
-        });
-    }
-});
-
-// Export to CSV
-const csvContent = [
-    'Date,Hours,Rate,Client,Project,Vault',
-    ...consolidatedData.map(row => 
-        `${row.date},${row.hours},${row.rate},${row.client},${row.project},${row.vault}`
-    )
-].join('\n');
-
-fs.writeFileSync('consolidated-timesheet-data.csv', csvContent);
-console.log(`Consolidated ${consolidatedData.length} timesheet entries`);
-```
-
-### Project Templates
-
-**Hourly Consulting Template:**
-
-```markdown
-# {{CLIENT_NAME}} - Hourly Consulting Setup
-
-## Project Configuration
-- **Type**: Hourly/Time & Materials
-- **Rate**: ${{HOURLY_RATE}}
-- **Hours/Day**: {{DAILY_HOURS}}
-- **Start Date**: {{START_DATE}}
-
-## Goals & Objectives
-{{OBJECTIVES}}
-
-## Weekly Dashboard
-```timesheet
-PERIOD current-year
-VIEW summary
-SIZE normal
-```
-
-## Monthly Trends
-```timesheet
-PERIOD last-6-months
-VIEW chart
+WHERE date BETWEEN "2024-03-11" AND "2024-03-15"
 CHART trend
+VIEW chart
 ```
+
+## Next Week's Goals
+- [ ] Complete Client A milestone
+- [ ] Begin Client B discovery phase
+- [ ] Review Q1 performance metrics
 ```
 
-### Theme Integration & Style Settings
+## Report Generation
 
-**Using Style Settings Plugin for Advanced Customization:**
+### Manual Report Generation
 
-1. **Install Style Settings Plugin**:
-   - Go to Settings → Community Plugins
-   - Search for "Style Settings" and install
-   - Enable the plugin
+1. **Open Report Generator:**
+   - Click "Generate Monthly Report" in timesheet view, or
+   - Use Command Palette → "Generate Monthly Timesheet Report"
 
-2. **Access Timesheet Report Customization**:
-   - Go to Settings → Style Settings
-   - Find "Timesheet Report" section
-   - Expand to see all customization options
+2. **Select Options:**
+   - Choose month and year
+   - Select template (or use default)
+   - Confirm output location
 
-3. **Available Customizations**:
-   ```
-   Chart Colors:
-   ├── Primary Color (Hours) - Main data color
-   ├── Secondary Color (Utilization) - Trend lines
-   ├── Success Color (Revenue) - Positive metrics
-   └── Accent Color (Budget) - Additional data
-   
-   Interface:
-   ├── Summary Card Border Radius - 0-20px
-   ├── Default Chart Height - 200-500px
-   └── Embed Spacing - 5-30px
-   ```
+3. **Review Generated Report:**
+   - Report appears in your configured output folder
+   - All placeholders are replaced with calculated values
+   - Table includes all timesheet entries for the period
 
-4. **Theme-Aware Color Schemes**:
-   ```css
-   Light Theme Example:
-   --timesheet-color-primary: #4f81bd     /* Professional blue */
-   --timesheet-color-secondary: #c0504d   /* Warning red */
-   --timesheet-color-tertiary: #9bbb59    /* Success green */
-   --timesheet-color-quaternary: #8064a2  /* Accent purple */
-   
-   Dark Theme Example:
-   --timesheet-color-primary: #6496dc     /* Bright blue */
-   --timesheet-color-secondary: #dc6464   /* Soft red */
-   --timesheet-color-tertiary: #96c864    /* Bright green */
-   --timesheet-color-quaternary: #aa82be  /* Soft purple */
-   ```
+### Automated Workflows
 
-5. **Creating Custom Color Schemes**:
-   - **Business Professional**: Blues and grays
-   - **High Contrast**: Strong color differences
-   - **Minimal**: Muted, subtle colors
-   - **Brand Colors**: Match your company colors
+#### Monthly Reporting Workflow
 
-**Manual Color Configuration** (without Style Settings):
+Create a template for consistent monthly reporting:
+
 ```markdown
-# Timesheet Report Settings
-Settings → Timesheet Report → Appearance
+# Monthly Report Template
 
-1. Disable "Use Style Settings for Colors"
-2. Set manual hex colors:
-   - Primary Color: #your-brand-color
-   - Secondary Color: #accent-color
-   - Success Color: #success-color
-   - Accent Color: #additional-color
+## {{PROJECT_NAME}} - {{MONTH_YEAR}}
+
+**Generated:** {{GENERATION_DATE}}
+
+### Executive Summary
+This report covers {{MONTH_HOURS}} hours of work completed during {{MONTH_YEAR}}.
+
+### Financial Overview
+- **Total Hours:** {{MONTH_HOURS}}
+- **Total Value:** {{TOTAL_VALUE}}
+- **Average Rate:** {{CURRENCY}}XX/hour
+
+### Project Status
+{{REMAINING_HOURS}}
+
+### Work Breakdown
+{{TABLE_PLACEHOLDER}}
+
+### Next Month's Goals
+<!-- Update this section manually each month -->
+
+---
+*Automated report generated by Obsidian Timesheet Plugin*
+```
+
+#### Client Deliverables
+
+For client-facing reports, create professional templates:
+
+```markdown
+# Professional Client Report
+
+**{{PROJECT_NAME}}**  
+**Reporting Period:** {{MONTH_YEAR}}  
+**Date:** {{GENERATION_DATE}}
+
+---
+
+## Executive Summary
+
+During {{MONTH_YEAR}}, our team dedicated {{MONTH_HOURS}} hours to advancing your project goals.
+
+## Value Delivered
+
+**Total Investment:** {{TOTAL_VALUE}}  
+**Hours Applied:** {{MONTH_HOURS}}  
+**Focus Areas:** [Update based on work completed]
+
+## Detailed Activity Report
+
+{{TABLE_PLACEHOLDER}}
+
+## Next Steps
+
+[Update with specific next steps and recommendations]
+
+## Questions or Feedback?
+
+We welcome your feedback on this reporting format and the work completed. Please don't hesitate to reach out with any questions.
+
+---
+
+**Contact Information**  
+[Your contact details]
+```
+
+### Bulk Report Generation
+
+For multiple time periods or projects:
+
+1. **Set up consistent templates** for each report type
+2. **Use the report generator** for each month/period needed
+3. **Organize output** in dated subfolders
+4. **Review and customize** each report before sending to clients
+
+## Performance & Best Practices
+
+### File Organization
+
+#### Recommended Folder Structure
+
+```
+📁 Your Vault/
+├── 📁 Timesheets/
+│   ├── 📁 2024/
+│   │   ├── 📁 01-January/
+│   │   ├── 📁 02-February/
+│   │   └── 📁 03-March/
+│   └── 📁 2023/
+│       └── 📁 Archive/
+├── 📁 Templates/
+│   ├── Monthly Report Template.md
+│   └── Client Report Template.md
+└── 📁 Reports/
+    └── 📁 Timesheet/
+        ├── 📁 2024/
+        └── 📁 Client Deliverables/
+```
+
+#### Timesheet File Naming
+
+**Best practices for timesheet files:**
+
+```
+✅ Good naming:
+2024-03-15.md
+2024-03-15-client-work.md
+March-15-2024.md
+
+❌ Avoid:
+Work today.md (no date)
+timesheet.md (no date)
+3-15-24.md (ambiguous format)
 ```
 
 ### Performance Optimization
 
-For vaults with extensive timesheet history:
+#### Metadata Cache Benefits
 
-```markdown
-# Performance Optimization Checklist
+The plugin uses Obsidian's official metadata cache, providing:
 
-## Archive Strategy
-- Move files older than 2 years to `Archive/` folders
-- Keep current year + previous year in active `Timesheets/`
-- Use date-based folder structure: `Timesheets/2024/03/`
+- **Fast Startup:** No manual file parsing on load
+- **Real-time Updates:** Changes reflected immediately
+- **Memory Efficient:** Leverages Obsidian's optimized caching
+- **Type Safety:** Proper error handling for malformed frontmatter
 
-## Embedding Best Practices
-- Use specific date filters instead of `PERIOD all-time`
-- Limit concurrent embeds on single pages
-- Use `SIZE compact` for frequently-viewed pages
-- Cache-friendly: Avoid real-time updates in templates
+#### Optimization Tips
 
-## Settings Optimization
-- Set refresh interval to 5-10 minutes for large datasets
-- Enable debug mode only when troubleshooting
-- Use normalized folder paths in settings
-- Enable Style Settings for better theme integration
-```
+**For Large Vaults:**
+
+1. **Use Date Ranges in Embeds:**
+   ```timesheet
+   WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
+   // More efficient than processing all historical data
+   ```
+
+2. **Leverage Compact Views:**
+   ```timesheet
+   VIEW summary
+   SIZE compact
+   // Faster rendering for frequently-viewed pages
+   ```
+
+3. **Archive Old Data:**
+   - Move old timesheet files to Archive subfolders
+   - Plugin still processes them but with better organization
+
+**For Many Embeds:**
+
+1. **Limit Concurrent Embeds** on single pages
+2. **Use Specific Filters** rather than broad date ranges
+3. **Consider Separate Pages** for different time periods
 
 ### Memory Management
 
+#### Understanding Resource Usage
+
+The plugin is optimized for efficiency:
+
 ```javascript
-// Performance monitoring in console
-// Check plugin memory usage
-console.log('Timesheet Plugin Memory Usage:', {
-    heapUsed: process.memoryUsage().heapUsed / 1024 / 1024,
-    charts: document.querySelectorAll('canvas').length,
-    embeds: document.querySelectorAll('.timesheet-embed').length
-});
-
-// Clear chart cache if needed
-if (app.plugins.plugins['timesheet-report']) {
-    app.plugins.plugins['timesheet-report'].chartRenderer.clearCache();
-}
+// Memory usage is minimal due to:
+- Metadata cache utilization (no duplicate file reading)
+- Lazy chart rendering (charts load only when visible)  
+- Efficient data structures (time entries cached intelligently)
+- Smart query processing (filters applied early to reduce data set)
 ```
 
-## Troubleshooting Guide
+#### Monitoring Performance
 
-### Common Issues & Solutions
+Enable **Debug Mode** in settings to monitor:
+- File processing times
+- Query execution duration
+- Memory allocation patterns
+- Cache hit/miss ratios
 
-**Issue**: Embedded reports showing "No data found"
-```markdown
-**Solution Checklist**:
-1. Verify timesheet folder path in settings
-2. Check YAML frontmatter syntax in files
-3. Confirm date format (YYYY-MM-DD)
-4. Test with simplified query: `VIEW summary`
-5. Enable debug mode for detailed logging
-```
+## Troubleshooting
 
-**Issue**: Charts not rendering properly
-```markdown
-**Solution Steps**:
-1. Check browser console for JavaScript errors
-2. Verify Chart.js library loaded: `window.Chart !== undefined`
-3. Clear browser cache and reload
-4. Try different chart type: `CHART trend` vs `CHART monthly`
-5. Reduce data complexity with date filters
-```
+### Data Issues
 
-**Issue**: Performance problems with large datasets
-```markdown
-**Optimization Steps**:
-1. Archive old timesheet files
-2. Use specific date filters in embeds
-3. Reduce concurrent embeds per page
-4. Increase auto-refresh interval
-5. Consider vault splitting for large businesses
-6. Use Style Settings for better rendering performance
-```
+#### No Timesheet Data Appearing
 
-**Issue**: Charts don't match theme colors
-```markdown
-**Solution Steps**:
-1. Install Style Settings plugin
-2. Enable "Use Style Settings for Colors" in plugin settings
-3. Customize colors in Settings → Style Settings → Timesheet Report
-4. Colors will automatically update when theme changes
-5. For manual control, disable Style Settings integration
-```
+**Symptoms:** Empty reports, "No data found" messages
+
+**Solutions:**
+
+1. **Check Folder Path:**
+   ```
+   ✅ Settings → Timesheet Folder: "Timesheets"
+   ✅ Verify folder exists in your vault
+   ✅ Check for typos in folder name
+   ```
+
+2. **Verify File Format:**
+   ```yaml
+   ✅ Frontmatter present:
+   ---
+   hours: 8.5
+   ---
+   
+   ❌ Missing frontmatter:
+   # Just content without YAML block
+   ```
+
+3. **Check Date Detection:**
+   ```
+   ✅ Filename includes date: "2024-03-15.md"
+   ✅ Or frontmatter has date: "date: 2024-03-15"
+   ❌ No date information available
+   ```
+
+#### Incorrect Calculations
+
+**Symptoms:** Wrong hour totals, missing revenue calculations
+
+**Solutions:**
+
+1. **Validate Frontmatter Types:**
+   ```yaml
+   ✅ Correct:
+   hours: 8.5
+   per-hour: 75
+   
+   ❌ Problematic:
+   hours: "eight and a half"
+   per-hour: "seventy-five dollars"
+   ```
+
+2. **Check Working Day Flags:**
+   ```yaml
+   ✅ For working days:
+   worked: true     # or omit entirely
+   
+   ✅ For PTO/holidays:
+   worked: false
+   hours: 0
+   ```
+
+3. **Enable Debug Mode:**
+   - Go to Settings → Debug Mode: ON
+   - Check console for processing details
+   - Look for frontmatter parsing messages
+
+#### Date Extraction Problems
+
+**Symptoms:** Files not appearing in correct time periods
+
+**Debug Steps:**
+
+1. **Check Filename Formats:**
+   ```
+   ✅ Supported formats:
+   2024-03-15.md
+   March-15-2024.md  
+   20240315.md
+   
+   ❌ Unsupported:
+   3/15/24.md
+   Mar 15.md
+   Tuesday.md
+   ```
+
+2. **Verify Frontmatter Dates:**
+   ```yaml
+   ✅ Correct format:
+   date: 2024-03-15
+   
+   ❌ Incorrect formats:
+   date: "March 15, 2024"
+   date: "3/15/24"
+   date: 15-03-2024
+   ```
+
+3. **Debug Date Extraction:**
+   - Enable Debug Mode
+   - Look for "Date extracted: YYYY-MM-DD" messages
+   - Check "Could not extract date" warnings
+
+### Template Issues
+
+#### Template Not Loading
+
+**Symptoms:** Generated reports use default template instead of custom template
+
+**Solutions:**
+
+1. **Verify Template Path:**
+   ```
+   ✅ Settings → Report Template Folder: "Templates"
+   ✅ Settings → Default Report Template: "Templates/My Template.md"
+   ✅ File exists at specified path
+   ```
+
+2. **Check File Permissions:**
+   ```
+   ✅ Template file is readable
+   ✅ Template folder is accessible
+   ✅ No file locks or permissions issues
+   ```
+
+3. **Validate Template Content:**
+   ```markdown
+   ✅ Must contain:
+   {{TABLE_PLACEHOLDER}}
+   
+   ✅ Valid placeholders:
+   {{MONTH_YEAR}}
+   {{MONTH_HOURS}}
+   {{PROJECT_NAME}}
+   
+   ❌ Invalid placeholders:
+   {MONTH_YEAR}     // Single braces
+   [[MONTH_YEAR]]   // Wiki links
+   ```
+
+#### Missing Placeholder Replacement
+
+**Symptoms:** Generated reports show `{{PLACEHOLDER}}` instead of values
+
+**Solutions:**
+
+1. **Check Placeholder Spelling:**
+   ```markdown
+   ✅ Correct:
+   {{MONTH_HOURS}}
+   {{TOTAL_VALUE}}
+   
+   ❌ Incorrect:
+   {{MONTHLY_HOURS}}    // Wrong name
+   {{TOTAL_VALUE }}     // Extra space
+   {{ MONTH_HOURS}}     // Extra space
+   ```
+
+2. **Verify Data Availability:**
+   ```
+   ✅ For {{REMAINING_HOURS}}:
+   - Project Type must be "Fixed Hour Budget" or "Retainer"
+   - Budget Hours must be set in project settings
+   
+   ✅ For {{TOTAL_VALUE}}:
+   - Default Rate must be set, OR
+   - Timesheet files must have per-hour rates
+   ```
+
+### Query Syntax Issues
+
+#### Embedding Syntax Errors
+
+**Symptoms:** Query blocks show errors instead of data
+
+**Common Issues & Fixes:**
+
+1. **Case Sensitivity:**
+   ```
+   ✅ Correct:
+   WHERE year = 2024
+   VIEW summary
+   CHART trend
+   
+   ❌ Incorrect:
+   where year = 2024    // lowercase
+   view summary         // lowercase
+   chart trend          // lowercase
+   ```
+
+2. **String Quoting:**
+   ```
+   ✅ Correct:
+   WHERE client = "Acme Corp"
+   WHERE project = "Web Development"
+   
+   ❌ Incorrect:
+   WHERE client = Acme Corp      // No quotes
+   WHERE project = 'Web Dev'     // Single quotes
+   ```
+
+3. **Date Format:**
+   ```
+   ✅ Correct:
+   WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
+   
+   ❌ Incorrect:
+   WHERE date BETWEEN 2024-01-01 AND 2024-03-31   // No quotes
+   WHERE date BETWEEN "1/1/24" AND "3/31/24"       // Wrong format
+   ```
+
+#### Query Performance Issues
+
+**Symptoms:** Slow-loading embeds, timeout errors
+
+**Optimization Strategies:**
+
+1. **Use Specific Date Ranges:**
+   ```
+   ✅ Fast:
+   WHERE year = 2024 AND month = 3
+   WHERE date BETWEEN "2024-01-01" AND "2024-03-31"
+   
+   ❌ Slow:
+   WHERE year >= 2020    // Too broad
+   // No date filter     // Processes all data
+   ```
+
+2. **Choose Appropriate Views:**
+   ```
+   ✅ For quick checks:
+   VIEW summary
+   SIZE compact
+   
+   ✅ For detailed analysis:
+   VIEW full
+   SIZE detailed
+   ```
 
 ### Debug Mode Analysis
 
-Enable debug mode and check console output:
+#### Enabling Debug Mode
 
+1. Go to Settings → Timesheet Report
+2. Enable "Debug Mode"
+3. Refresh your timesheet view
+4. Check browser console (F12 → Console tab)
+
+#### Understanding Debug Output
+
+**File Processing Messages:**
 ```javascript
-// Debug information structure
-{
-  timestamp: "2024-03-15T10:30:00Z",
-  operation: "processTimesheetData",
-  filesFound: 45,
-  entriesProcessed: 238,
-  errors: [],
-  performance: {
-    dataProcessing: "125ms",
-    chartRendering: "89ms",
-    totalTime: "214ms"
-  }
-}
+[Timesheet Plugin] Processing file: Timesheets/2024-03-15.md
+[Timesheet Plugin] Frontmatter found: {hours: 8.5, client: "Acme"}
+[Timesheet Plugin] Date extracted: 2024-03-15T00:00:00.000Z
+[Timesheet Plugin] Entry added: 8.5 hours for Acme on 2024-03-15
 ```
 
-### Data Validation
-
-Create validation timesheet for testing:
-
-```md
----
-tags: [Test, Validation]
-hours: 8
-worked: true
-per-hour: 75
-client: ["Test Client"]
-work-order: ["Validation Project"]
-test-case: "Standard format validation"
----
-
-# Test Timesheet - 2024-03-15
-
-This file validates that the plugin correctly processes standard timesheet formats.
-
-## Expected Results
-- Hours: 8
-- Rate: $75
-- Revenue: $600
-- Client: Test Client
-- Project: Validation Project
-
-## Validation Checklist
-- [x] YAML frontmatter parsed correctly
-- [x] Hours extracted and calculated
-- [x] Rate applied properly
-- [x] Date derived from filename
-- [x] Metadata processed completely
+**Error Messages:**
+```javascript
+[Timesheet Plugin] Warning: No frontmatter found in file: Timesheets/notes.md
+[Timesheet Plugin] Error: Could not extract date from file: Timesheets/random-note.md
+[Timesheet Plugin] Warning: Invalid hours value in file: Timesheets/2024-03-16.md
 ```
 
-### Support Resources
+**Performance Metrics:**
+```javascript
+[Timesheet Plugin] Performance: 
+  - Files processed: 45
+  - Entries extracted: 32
+  - Processing time: 156ms
+  - Cache hits: 28
+```
 
-- **GitHub Issues**: Report bugs and request features
-- **Obsidian Discord**: #plugin-dev channel for community support
-- **Documentation**: README.md for quick reference
-- **Examples**: This USER_GUIDE.md for detailed scenarios
+#### Using Debug Information
+
+**For Data Issues:**
+1. Look for "No frontmatter" warnings → Add YAML blocks
+2. Check "Invalid date" errors → Fix filename or add date property
+3. Watch "Invalid hours" warnings → Fix numeric format in frontmatter
+
+**For Performance:**
+1. Monitor processing time → Consider archiving old files
+2. Check cache hit ratio → Restart Obsidian if cache is cold
+3. Count processed files → Use date filters in embeds if too many
+
+### Getting Help
+
+#### Self-Diagnosis Checklist
+
+Before seeking help, verify:
+
+- [ ] Timesheet folder path is correct and folder exists
+- [ ] Timesheet files have proper YAML frontmatter
+- [ ] Hours are numeric values in frontmatter
+- [ ] Dates are detectable (in filename or frontmatter)
+- [ ] Template paths are valid and files exist
+- [ ] Query syntax follows case-sensitive rules
+- [ ] Debug mode enabled for detailed error messages
+
+#### Support Resources
+
+**Documentation:**
+- This User Guide for comprehensive coverage
+- README.md for quick reference
+- Plugin settings descriptions for configuration help
+
+**Community:**
+- GitHub Issues for bug reports and feature requests
+- Obsidian Discord #plugin-dev channel for general discussion
+- Plugin directory reviews for user feedback
+
+**Technical Support:**
+- Enable Debug Mode and include console output in reports
+- Provide sample timesheet files (anonymized) for troubleshooting
+- Include plugin settings configuration in support requests
+
+#### Common Support Requests
+
+**"My data isn't showing up"**
+- Include: Debug mode console output
+- Include: Sample timesheet file structure
+- Include: Plugin settings screenshot
+
+**"Generated reports are wrong"**
+- Include: Template file content
+- Include: Expected vs. actual output
+- Include: Timesheet data for the period
+
+**"Queries aren't working"**
+- Include: Exact query syntax used
+- Include: Error messages from browser console
+- Include: Sample data that should match the query
 
 ---
 
-**This user guide covers advanced usage scenarios. For basic setup and configuration, refer to the [README.md](README.md) file.**
+This User Guide covers the complete functionality of the Timesheet Report Plugin. The plugin leverages Obsidian's official APIs for maximum reliability and performance, ensuring your timesheet data is processed accurately and efficiently.
