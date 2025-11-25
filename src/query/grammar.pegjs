@@ -336,11 +336,25 @@ ShowField
   / RetainerShowField  // NEW
 
 StandardShowField
-  = "hours"i        { return createIdentifier('hours'); }
+  = "date"i         { return createIdentifier('date'); }
+  / "project"i      { return createIdentifier('project'); }
+  / "client"i       { return createIdentifier('client'); }
+  / "task"i         { return createIdentifier('task'); }
+  / "taskDescription"i { return createIdentifier('taskDescription'); }
+  / "workOrder"i    { return createIdentifier('workOrder'); }
+  / "hours"i        { return createIdentifier('hours'); }
+  / "rate"i         { return createIdentifier('rate'); }
   / "invoiced"i     { return createIdentifier('invoiced'); }
+  / "revenue"i      { return createIdentifier('revenue'); }
   / "progress"i     { return createIdentifier('progress'); }
   / "utilization"i  { return createIdentifier('utilization'); }
   / "remaining"i    { return createIdentifier('remaining'); }
+  / "label"i        { return createIdentifier('label'); }
+  / "period"i       { return createIdentifier('period'); }
+  / "budgetHours"i  { return createIdentifier('budgetHours'); }
+  / "budgetUsed"i   { return createIdentifier('budgetUsed'); }
+  / "budgetRemaining"i { return createIdentifier('budgetRemaining'); }
+  / "budgetProgress"i { return createIdentifier('budgetProgress'); }
 
 // NEW: Retainer-specific show fields
 RetainerShowField

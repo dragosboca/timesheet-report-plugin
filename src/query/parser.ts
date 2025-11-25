@@ -146,7 +146,14 @@ export class QueryParser {
       throw new ParseError('SHOW clause must have fields array');
     }
 
-    const validFields = ['hours', 'invoiced', 'progress', 'utilization', 'remaining'];
+    const validFields = [
+      'date', 'project', 'client', 'task', 'taskDescription', 'workOrder',
+      'hours', 'rate', 'invoiced', 'revenue', 'progress', 'utilization', 'remaining',
+      'label', 'period', 'budgetHours', 'budgetUsed', 'budgetRemaining', 'budgetProgress',
+      // Retainer fields
+      'service_mix', 'rollover', 'banked', 'allocated', 'burned', 'efficiency',
+      'response_time', 'satisfaction', 'value_delivered', 'health_score', 'forecast'
+    ];
     for (const field of clause.fields) {
       if (!field || field.type !== 'Identifier') {
         throw new ParseError('SHOW fields must be identifiers');

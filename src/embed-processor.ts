@@ -1,29 +1,32 @@
-// embed-processor.ts - Refactored to use unified architecture
+// embed-processor.ts - Refactored to use unified architecture with new render hierarchy
 
 import { MarkdownPostProcessorContext } from 'obsidian';
 import TimesheetReportPlugin from './main';
 import { QueryProcessor } from './core/query-processor';
-import { UnifiedTableGenerator, TableOptions } from './core/unified-table-generator';
-import { ChartRenderer } from './chart-renderer';
+import { ChartFactory } from './charts';
+import { TableFactory } from './tables';
 import { parseQuery, ParseError } from './query/parser';
 import { QueryInterpreter, TimesheetQuery, InterpreterError } from './query/interpreter';
+import { Formatter } from './rendering';
 
 export class EmbedProcessor {
   private plugin: TimesheetReportPlugin;
   private queryProcessor: QueryProcessor;
-  private tableGenerator: UnifiedTableGenerator;
-  private chartRenderer: ChartRenderer;
+  private chartFactory: ChartFactory;
+  private tableFactory: TableFactory;
+  private formatter: Formatter;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
     this.queryProcessor = new QueryProcessor(plugin);
-    this.tableGenerator = new UnifiedTableGenerator();
-    this.chartRenderer = new ChartRenderer(plugin);
+    this.chartFactory = new ChartFactory(plugin);
+    this.tableFactory = new TableFactory(plugin);
+    this.formatter = new Formatter(plugin.settings.currencySymbol || '€');
   }
 
   registerProcessor() {
-    this.plugin.registerMarkdownCodeBlockProcessor('timesheet', (source, el, _ctx) => {
-      this.processTimesheetBlock(source, el, _ctx);
+    this.plugin.registerMarkdownCodeBlockProcessor('timesheet', (source, el, ctx) => {
+      this.processTimesheetBlock(source, el, ctx);
     });
   }
 
@@ -70,7 +73,7 @@ export class EmbedProcessor {
           await this.renderEmbedChart(container, processedData, query);
           break;
         case 'table':
-          this.renderEmbedTable(container, processedData, query);
+          await this.renderEmbedTable(container, processedData, query);
           break;
         case 'retainer':
           this.renderRetainerView(container, processedData, query);
@@ -81,7 +84,7 @@ export class EmbedProcessor {
         case 'full':
           this.renderEmbedSummary(container, processedData, query);
           await this.renderEmbedChart(container, processedData, query);
-          this.renderEmbedTable(container, processedData, query);
+          await this.renderEmbedTable(container, processedData, query);
           break;
         default:
           this.renderEmbedSummary(container, processedData, query);
@@ -154,12 +157,18 @@ export class EmbedProcessor {
     // Hours row
     const hoursRow = tbody.createEl('tr');
     hoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
-    hoursRow.createEl('td', { text: this.formatNumber(summary.totalHours), cls: 'summary-value' });
+    hoursRow.createEl('td', {
+      text: this.formatter.formatHours(summary.totalHours),
+      cls: 'summary-value'
+    });
 
     // Invoiced row
     const invoicedRow = tbody.createEl('tr');
     invoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
-    invoicedRow.createEl('td', { text: `€${this.formatNumber(summary.totalInvoiced)}`, cls: 'summary-value' });
+    invoicedRow.createEl('td', {
+      text: this.formatter.formatCurrency(summary.totalInvoiced),
+      cls: 'summary-value'
+    });
 
     // Budget or Utilization row (only in normal/detailed mode)
     if (size !== 'compact') {
@@ -167,7 +176,7 @@ export class EmbedProcessor {
         const progressRow = tbody.createEl('tr');
         progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
         progressRow.createEl('td', {
-          text: `${Math.round((summary.budgetProgress || 0) * 100)}%`,
+          text: this.formatter.formatPercentage(summary.budgetProgress || 0),
           cls: 'summary-value'
         });
 
@@ -175,7 +184,7 @@ export class EmbedProcessor {
           const remainingRow = tbody.createEl('tr');
           remainingRow.createEl('td', { text: 'Remaining', cls: 'summary-label' });
           remainingRow.createEl('td', {
-            text: `${this.formatNumber(summary.budgetRemaining || 0)}h`,
+            text: this.formatter.formatHours(summary.budgetRemaining || 0),
             cls: 'summary-value'
           });
         }
@@ -183,7 +192,7 @@ export class EmbedProcessor {
         const utilizationRow = tbody.createEl('tr');
         utilizationRow.createEl('td', { text: 'Utilization', cls: 'summary-label' });
         utilizationRow.createEl('td', {
-          text: `${Math.round(summary.utilization * 100)}%`,
+          text: this.formatter.formatPercentage(summary.utilization),
           cls: 'summary-value'
         });
       }
@@ -207,26 +216,34 @@ export class EmbedProcessor {
     });
 
     try {
-      // Use the chart renderer with processed data
+      // Determine height based on size
+      const height = query.size === 'compact' ? 200 : query.size === 'detailed' ? 400 : 300;
+
+      // Use the chart factory with processed data
       switch (query.chartType) {
-        case 'trend':
-          await this.chartRenderer.renderTrendChart(chartWrapper, data.trendData);
+        case 'trend': {
+          const trendChart = this.chartFactory.createTrendChart(data.trendData);
+          await trendChart.render({ container: chartWrapper, dimensions: { height } });
           break;
-        case 'budget':
-          await this.chartRenderer.renderBudgetChart(chartWrapper, data.monthlyData);
+        }
+        case 'budget': {
+          const budgetChart = this.chartFactory.createBudgetChart(data.monthlyData);
+          await budgetChart.render({ container: chartWrapper, dimensions: { height } });
           break;
-        // 'utilization' chart type removed - use 'trend' instead which shows both hours and utilization
+        }
         case 'monthly':
-        default:
-          await this.chartRenderer.renderMonthlyChart(chartWrapper, data.monthlyData);
+        default: {
+          const monthlyChart = this.chartFactory.createMonthlyChart(data.monthlyData);
+          await monthlyChart.render({ container: chartWrapper, dimensions: { height } });
           break;
+        }
       }
     } catch (error) {
       this.renderError(chartWrapper, `Error rendering chart: ${error.message}`);
     }
   }
 
-  private renderEmbedTable(container: HTMLElement, data: any, query: TimesheetQuery): void {
+  private async renderEmbedTable(container: HTMLElement, data: any, query: TimesheetQuery): Promise<void> {
     const tableContainer = container.createEl('div', {
       cls: 'timesheet-embed-table'
     });
@@ -238,30 +255,35 @@ export class EmbedProcessor {
       });
     }
 
-    // Configure table options
-    const tableOptions: TableOptions = {
-      format: 'html',
-      cssClass: 'timesheet-data-table timesheet-embed-data-table',
-      compact: query.size === 'compact',
-      showTotal: query.size !== 'compact'
-    };
+    try {
+      // Limit data based on size
+      let displayData = data.monthlyData;
+      if (query.size === 'compact') {
+        displayData = displayData.slice(0, 3);
+      } else if (query.size === 'normal') {
+        displayData = displayData.slice(0, 6);
+      }
 
-    // Use compact columns if needed
-    if (query.size === 'compact') {
-      tableOptions.columns = this.tableGenerator.getCompactColumns('monthly');
+      // Create monthly table using TableFactory
+      const tableOptions = {
+        format: 'html' as const,
+        compact: query.size === 'compact',
+        showTotal: query.size !== 'compact'
+      };
+
+      const monthlyTable = this.tableFactory.createMonthlyTable(displayData, tableOptions);
+
+      // Render options
+      const renderOptions = {
+        container: tableContainer,
+        format: 'html' as const
+      };
+
+      const tableHtml = await monthlyTable.render(renderOptions);
+      tableContainer.innerHTML = tableHtml;
+    } catch (error) {
+      this.renderError(tableContainer, `Error rendering table: ${error.message}`);
     }
-
-    // Limit data based on size
-    let displayData = data.monthlyData;
-    if (query.size === 'compact') {
-      displayData = displayData.slice(0, 3);
-    } else if (query.size === 'normal') {
-      displayData = displayData.slice(0, 6);
-    }
-
-    // Generate the table
-    const tableHTML = this.tableGenerator.generateMonthlyTable(displayData, tableOptions);
-    tableContainer.innerHTML = tableHTML;
   }
 
   private renderRetainerView(container: HTMLElement, data: any, query: TimesheetQuery): void {
@@ -274,8 +296,7 @@ export class EmbedProcessor {
       cls: 'timesheet-embed-title'
     });
 
-    // This would be implemented based on retainer-specific requirements
-    // For now, show a summary with retainer-specific metrics
+    // Show summary with retainer-specific metrics
     this.renderEmbedSummary(retainerContainer, data, query);
 
     // Add retainer-specific information
@@ -285,15 +306,16 @@ export class EmbedProcessor {
 
     if (data.summary.budgetHours) {
       const progressBar = retainerInfo.createEl('div', { cls: 'progress-bar' });
+      const progressPercent = Math.min(100, (data.summary.budgetProgress || 0) * 100);
       progressBar.createEl('div', {
         cls: 'progress-fill',
         attr: {
-          style: `width: ${Math.min(100, (data.summary.budgetProgress || 0) * 100)}%`
+          style: `width: ${progressPercent}%`
         }
       });
 
       retainerInfo.createEl('p', {
-        text: `${this.formatNumber(data.summary.totalHours)} of ${this.formatNumber(data.summary.budgetHours)} hours used`
+        text: `${this.formatter.formatHours(data.summary.totalHours)} of ${this.formatter.formatHours(data.summary.budgetHours)} hours used`
       });
     }
   }
@@ -324,7 +346,7 @@ export class EmbedProcessor {
     });
     utilizationItem.createEl('span', { text: 'Utilization', cls: 'health-label' });
     utilizationItem.createEl('span', {
-      text: `${Math.round(utilization * 100)}%`,
+      text: this.formatter.formatPercentage(utilization),
       cls: 'health-value'
     });
 
@@ -336,7 +358,7 @@ export class EmbedProcessor {
       });
       budgetItem.createEl('span', { text: 'Budget', cls: 'health-label' });
       budgetItem.createEl('span', {
-        text: `${Math.round(budgetProgress * 100)}%`,
+        text: this.formatter.formatPercentage(budgetProgress),
         cls: 'health-value'
       });
     }
@@ -353,13 +375,6 @@ export class EmbedProcessor {
     container.createEl('div', {
       cls: 'timesheet-embed-error',
       text: message
-    });
-  }
-
-  private formatNumber(num: number): string {
-    return num.toLocaleString('en-US', {
-      maximumFractionDigits: 1,
-      minimumFractionDigits: 0
     });
   }
 }

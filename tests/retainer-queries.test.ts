@@ -9,7 +9,7 @@ describe('Retainer Query Language Tests', () => {
   });
 
   describe('Standard Query Compatibility', () => {
-    it('should maintain backward compatibility with standard WHERE queries', () => {
+    it('should support standard WHERE queries', () => {
       const standardQueries = [
         'WHERE year = 2024 AND month = 3 SHOW hours, invoiced',
         'WHERE year = 2024 SHOW hours, utilization VIEW chart CHART trend'

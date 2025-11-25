@@ -27,6 +27,9 @@ import {
   PercentageLiteralNode,
   RelativeDateNode
 } from './ast';
+import { columnMapper } from './column-mapper';
+import { TableColumn } from '../tables/base/TableConfig';
+import { QueryParser } from './parser';
 
 export interface TimesheetQuery {
   where?: {
@@ -42,6 +45,7 @@ export interface TimesheetQuery {
     priority?: string;
   };
   show?: string[];
+  columns?: TableColumn[];
   view?: 'summary' | 'chart' | 'table' | 'full' | 'retainer' | 'health' | 'rollover' | 'services' | 'contract' | 'performance' | 'renewal';
   chartType?: 'trend' | 'monthly' | 'budget' | 'service_mix' | 'rollover_trend' | 'health_score' | 'value_delivery' | 'response_time' | 'satisfaction' | 'forecast' | 'burn_rate';
   period?: 'current-year' | 'all-time' | 'last-6-months' | 'last-12-months' | 'next-month' | 'next-quarter' | 'contract-term';
@@ -83,6 +87,15 @@ export interface TimesheetQuery {
 
 export class QueryInterpreter implements ASTVisitor<any> {
   private query: TimesheetQuery = {};
+  private parser: QueryParser = new QueryParser();
+
+  /**
+   * Parse and interpret a query string
+   */
+  parseAndInterpret(queryString: string): TimesheetQuery {
+    const ast = this.parser.parse(queryString);
+    return this.interpret(ast);
+  }
 
   interpret(ast: QueryNode): TimesheetQuery {
     this.query = {};
@@ -150,6 +163,16 @@ export class QueryInterpreter implements ASTVisitor<any> {
 
   visitShowClause(node: ShowClauseNode): any {
     this.query.show = node.fields.map(field => field.name);
+
+    // Generate table columns from the SHOW clause
+    try {
+      this.query.columns = columnMapper.mapShowClauseToColumns(node);
+    } catch (error) {
+      console.warn('Error mapping SHOW clause to columns:', error);
+      // Fallback to default columns if mapping fails
+      this.query.columns = undefined;
+    }
+
     return this.query.show;
   }
 

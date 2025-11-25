@@ -4,12 +4,16 @@ import { TimesheetReportSettings, DEFAULT_SETTINGS, TimesheetReportSettingTab } 
 import { DebugLogger } from './debug-logger';
 import { ReportGenerator } from './report-generator';
 import { EmbedProcessor } from './embed-processor';
+import { QueryProcessor } from './core/query-processor';
+// Import Chart.js initialization to register all required components
+import './charts/chartjs-init';
 
 export default class TimesheetReportPlugin extends Plugin {
   settings: TimesheetReportSettings;
   debugLogger: DebugLogger;
   reportGenerator: ReportGenerator;
   embedProcessor: EmbedProcessor;
+  queryProcessor: QueryProcessor;
 
   async onload() {
     await this.loadSettings();
@@ -18,6 +22,9 @@ export default class TimesheetReportPlugin extends Plugin {
     this.debugLogger = DebugLogger.getInstance();
     this.debugLogger.enable(this.settings.debugMode);
 
+    // Initialize query processor
+    this.queryProcessor = new QueryProcessor(this);
+
     // Initialize report generator
     this.reportGenerator = new ReportGenerator(this);
 
@@ -25,7 +32,7 @@ export default class TimesheetReportPlugin extends Plugin {
     this.embedProcessor = new EmbedProcessor(this);
     this.embedProcessor.registerProcessor();
 
-    this.debugLogger.log('Plugin loading');
+    this.debugLogger.log('Plugin loading with unified architecture');
 
     // Listen for theme changes to refresh chart colors
     this.registerEvent(this.app.workspace.on('css-change', () => {
@@ -59,10 +66,10 @@ export default class TimesheetReportPlugin extends Plugin {
       },
     });
 
-    // Add command to generate monthly report
+    // Add command to generate interval report
     this.addCommand({
-      id: 'generate-monthly-report',
-      name: 'Generate Monthly Timesheet Report',
+      id: 'generate-interval-report',
+      name: 'Generate Timesheet Report',
       callback: () => {
         this.showReportGeneratorModal();
       },
@@ -76,24 +83,10 @@ export default class TimesheetReportPlugin extends Plugin {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
-    // Migration: Remove legacy targetHoursPerMonth setting
-    let needsSave = false;
-    if (loadedData && 'targetHoursPerMonth' in loadedData) {
-      console.log('Migrating legacy targetHoursPerMonth setting');
-      // Remove the legacy property
-      delete (this.settings as any).targetHoursPerMonth;
-      needsSave = true;
-    }
-
     // Ensure hoursPerWorkday exists, add it if not
     if (this.settings.hoursPerWorkday === undefined) {
       console.log('Setting default hoursPerWorkday');
       this.settings.hoursPerWorkday = 8;
-      needsSave = true;
-    }
-
-    // Save settings if migration was needed
-    if (needsSave) {
       await this.saveSettings();
     }
 
@@ -125,14 +118,18 @@ export default class TimesheetReportPlugin extends Plugin {
   }
 
   onunload() {
+    // Clear any cached data
+    if (this.queryProcessor) {
+      this.queryProcessor.clearCache();
+    }
     // Plugin cleanup - views will be automatically cleaned up
   }
 
   /**
-   * Show modal for generating monthly reports
+   * Show modal for generating interval reports
    */
   async showReportGeneratorModal(): Promise<void> {
-    const { ReportGeneratorModal } = await import('./report-generator-modal');
-    new ReportGeneratorModal(this.app, this).open();
+    const { IntervalReportModal } = await import('./interval-report-modal');
+    new IntervalReportModal(this).open();
   }
 }

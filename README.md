@@ -436,15 +436,31 @@ src/
 ├── main.ts                    # Plugin entry point
 ├── view.ts                    # Main report view
 ├── settings.ts                # Configuration UI with official components
-├── data-processor.ts          # Data extraction via metadata cache
-├── chart-renderer.ts          # Chart visualization
+├── embed-processor.ts         # Code block processor for timesheet queries
 ├── report-generator.ts        # Report creation using vault API
 ├── template-manager.ts        # Template handling via file API
-├── timesheet-data-extractor.ts # Frontmatter processing
-└── query/                     # Grammar-based query parser
-    ├── tokenizer.ts           # Lexical analysis
-    ├── parser.ts              # Syntax analysis & AST
-    └── interpreter.ts         # Query execution
+├── core/                      # Core services
+│   ├── unified-data-extractor.ts    # Data extraction via metadata cache
+│   ├── unified-table-generator.ts   # Table generation (HTML/Markdown)
+│   └── query-processor.ts           # Query processing pipeline
+├── charts/                    # Modular chart system
+│   ├── base/
+│   │   ├── BaseChart.ts       # Abstract base class for all charts
+│   │   ├── ChartConfig.ts     # Type definitions and interfaces
+│   │   └── ChartTheme.ts      # Theme and color management
+│   ├── types/
+│   │   ├── TrendChart.ts      # Trend chart implementation
+│   │   ├── MonthlyChart.ts    # Monthly chart implementation
+│   │   └── BudgetChart.ts     # Budget chart implementation
+│   ├── ChartFactory.ts        # Factory for creating chart instances
+│   └── index.ts               # Module exports
+├── query/                     # Grammar-based query parser
+│   ├── parser.ts              # PEG parser (auto-generated)
+│   ├── interpreter.ts         # Query execution & AST interpretation
+│   └── grammar.pegjs          # Query language grammar definition
+└── utils/                     # Shared utilities
+    ├── date-utils.ts          # Date parsing and formatting
+    └── format-utils.ts        # Number and text formatting
 ```
 
 ### Building from Source

@@ -292,7 +292,7 @@ export class QueryProcessor {
     const trendData = {
       labels: limitedData.map(point => point.label),
       hours: limitedData.map(point => point.hours),
-      utilization: limitedData.map(point => point.utilization * 100), // Convert to percentage
+      utilization: limitedData.map(point => point.utilization), // Keep as decimal (0-1), chart will convert to percentage
       invoiced: limitedData.map(point => point.invoiced)
     };
 
@@ -315,24 +315,34 @@ export class QueryProcessor {
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
     const totalInvoiced = entries.reduce((sum, entry) => sum + (entry.hours * (entry.rate || 0)), 0);
 
-    // Calculate utilization based on period
+    // Calculate utilization based on months that have actual data
     let utilization = 0;
     const hoursPerWorkday = this.plugin.settings.hoursPerWorkday || 8;
 
-    if (query.period === 'current-year') {
-      // Calculate year-to-date utilization
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const workingDaysYTD = this.calculateWorkingDaysBetween(startOfYear, now);
-      const targetHoursYTD = workingDaysYTD * hoursPerWorkday;
-      utilization = targetHoursYTD > 0 ? totalHours / targetHoursYTD : 0;
-    } else {
-      // Calculate based on actual date range of entries
-      const dates = entries.map(e => e.date).sort((a, b) => a.getTime() - b.getTime());
-      if (dates.length > 0) {
-        const workingDays = this.calculateWorkingDaysBetween(dates[0], dates[dates.length - 1]);
-        const targetHours = workingDays * hoursPerWorkday;
-        utilization = targetHours > 0 ? totalHours / targetHours : 0;
+    if (entries.length > 0) {
+      // Group entries by month to get unique months with data
+      const monthsWithData = new Set<string>();
+      for (const entry of entries) {
+        const year = entry.date.getFullYear();
+        const month = entry.date.getMonth() + 1;
+        const key = `${year}-${month.toString().padStart(2, '0')}`;
+        monthsWithData.add(key);
+      }
+
+      // Calculate target hours based only on months that have data
+      let targetHours = 0;
+      for (const monthKey of monthsWithData) {
+        const [yearStr, monthStr] = monthKey.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10);
+        const workingDays = DateUtils.getWorkingDaysInMonth(year, month);
+        targetHours += workingDays * hoursPerWorkday;
+      }
+
+      utilization = targetHours > 0 ? totalHours / targetHours : 0;
+
+      if (this.plugin.settings.debugMode) {
+        console.log(`[Timesheet] Summary calculation - Months with data: ${monthsWithData.size}, Target hours: ${targetHours}, Actual hours: ${totalHours}, Utilization: ${Math.round(utilization * 100)}%`);
       }
     }
 

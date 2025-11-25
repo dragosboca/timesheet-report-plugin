@@ -1,33 +1,23 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import TimesheetReportPlugin from './main';
-import { ChartRenderer } from './chart-renderer';
-import { DataProcessor } from './data-processor';
+import { ChartFactory } from './charts';
+import { QueryProcessor } from './core/query-processor';
+import { TimesheetQuery } from './query/interpreter';
 
 export const VIEW_TYPE_TIMESHEET = 'timesheet-report-view';
 
 export class TimesheetReportView extends ItemView {
-  /**
-   * Helper to create a button and attach a click handler
-   */
-  private createButton(parent: HTMLElement, options: { cls: string, text: string, onClick: () => void }): HTMLButtonElement {
-    const btn = parent.createEl('button', {
-      cls: options.cls,
-      text: options.text
-    });
-    btn.addEventListener('click', options.onClick);
-    return btn;
-  }
   private plugin: TimesheetReportPlugin;
   public contentEl: HTMLElement;
-  private chartRenderer: ChartRenderer;
-  private dataProcessor: DataProcessor;
+  private chartFactory: ChartFactory;
+  private queryProcessor: QueryProcessor;
   private isLoading = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: TimesheetReportPlugin) {
     super(leaf);
     this.plugin = plugin;
-    this.dataProcessor = new DataProcessor(this.plugin);
-    this.chartRenderer = new ChartRenderer(this.plugin);
+    this.queryProcessor = new QueryProcessor(this.plugin);
+    this.chartFactory = new ChartFactory(this.plugin);
   }
 
   getViewType(): string {
@@ -125,8 +115,15 @@ export class TimesheetReportView extends ItemView {
         this.plugin.debugLogger.log('Processing timesheet data...');
       }
 
-      // Process data
-      const reportData = await this.dataProcessor.processTimesheetData();
+      // Create query for current year data
+      const query: TimesheetQuery = {
+        view: 'full',
+        period: 'current-year',
+        size: 'normal'
+      };
+
+      // Process data using QueryProcessor
+      const reportData = await this.queryProcessor.processQuery(query);
 
       if (this.plugin.settings.debugMode) {
         this.plugin.debugLogger.log('Data processed successfully', {
@@ -148,20 +145,23 @@ export class TimesheetReportView extends ItemView {
       if (this.plugin.settings.debugMode) {
         this.renderTargetHoursSection(container);
       }
-      // Render trend charts
+
+      // Render trend chart using new ChartFactory
       const chartContainer = container.createEl('div', {
         cls: 'timesheet-chart-container'
       });
-      await this.chartRenderer.renderTrendChart(chartContainer, reportData.trendData);
+      const trendChart = this.chartFactory.createTrendChart(reportData.trendData);
+      await trendChart.render({ container: chartContainer, dimensions: { height: 300 } });
 
-      // Render monthly breakdown charts
+      // Render monthly breakdown chart using new ChartFactory
       const monthlyChartContainer = container.createEl('div', {
         cls: 'timesheet-monthly-chart-container'
       });
-      await this.chartRenderer.renderMonthlyChart(monthlyChartContainer, reportData.monthlyData);
+      const monthlyChart = this.chartFactory.createMonthlyChart(reportData.monthlyData);
+      await monthlyChart.render({ container: monthlyChartContainer, dimensions: { height: 300 } });
 
       // Render data table
-      this.renderDataTable(container, reportData);
+      this.renderDataTable(container, reportData.monthlyData);
 
       if (this.plugin.settings.debugMode) {
         this.plugin.debugLogger.log('Report rendered successfully');
@@ -213,7 +213,7 @@ export class TimesheetReportView extends ItemView {
       });
       this.createButton(buttonContainer, {
         cls: 'timesheet-generate-report-button',
-        text: 'Generate Monthly Report',
+        text: 'Generate Report',
         onClick: async () => {
           await this.plugin.showReportGeneratorModal();
         }
@@ -221,7 +221,28 @@ export class TimesheetReportView extends ItemView {
     }
   }
 
-  private renderSummaryCards(container: HTMLElement, data: { currentYear: string | number; yearSummary: { totalHours: number; totalInvoiced: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }; allTimeSummary: { totalHours: number; totalInvoiced: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }; }) {
+  private renderSummaryCards(
+    container: HTMLElement,
+    data: {
+      currentYear: number;
+      yearSummary: {
+        totalHours: number;
+        totalInvoiced: number;
+        utilization: number;
+        budgetHours?: number;
+        budgetProgress?: number;
+        budgetRemaining?: number;
+      };
+      allTimeSummary: {
+        totalHours: number;
+        totalInvoiced: number;
+        utilization: number;
+        budgetHours?: number;
+        budgetProgress?: number;
+        budgetRemaining?: number;
+      };
+    }
+  ) {
     const summaryContainer = container.createEl('div', {
       cls: 'timesheet-summary-container'
     });
@@ -252,15 +273,15 @@ export class TimesheetReportView extends ItemView {
     // Hours row
     const hoursRow = currentYearBody.createEl('tr');
     hoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
-    hoursRow.createEl('td', { text: this.formatNumber(data.yearSummary.totalHours), cls: 'summary-value' });
+    hoursRow.createEl('td', { text: `${this.formatNumber(data.yearSummary.totalHours)}h`, cls: 'summary-value' });
 
     // Invoiced row
     const invoicedRow = currentYearBody.createEl('tr');
     invoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
     invoicedRow.createEl('td', { text: `€${this.formatNumber(data.yearSummary.totalInvoiced)}`, cls: 'summary-value' });
 
-    // Budget or Utilization row
-    if (data.yearSummary.budgetHours !== undefined) {
+    // Budget or Utilization
+    if (data.yearSummary.budgetHours !== undefined && data.yearSummary.budgetHours > 0) {
       const progressRow = currentYearBody.createEl('tr');
       progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
       progressRow.createEl('td', { text: `${Math.round((data.yearSummary.budgetProgress || 0) * 100)}%`, cls: 'summary-value' });
@@ -289,18 +310,18 @@ export class TimesheetReportView extends ItemView {
 
     const allTimeBody = allTimeTable.createEl('tbody');
 
-    // Hours row
+    // All time hours
     const allTimeHoursRow = allTimeBody.createEl('tr');
     allTimeHoursRow.createEl('td', { text: 'Hours', cls: 'summary-label' });
-    allTimeHoursRow.createEl('td', { text: this.formatNumber(data.allTimeSummary.totalHours), cls: 'summary-value' });
+    allTimeHoursRow.createEl('td', { text: `${this.formatNumber(data.allTimeSummary.totalHours)}h`, cls: 'summary-value' });
 
-    // Invoiced row
+    // All time invoiced
     const allTimeInvoicedRow = allTimeBody.createEl('tr');
     allTimeInvoicedRow.createEl('td', { text: 'Invoiced', cls: 'summary-label' });
     allTimeInvoicedRow.createEl('td', { text: `€${this.formatNumber(data.allTimeSummary.totalInvoiced)}`, cls: 'summary-value' });
 
-    // Budget or Utilization row
-    if (data.allTimeSummary.budgetHours !== undefined) {
+    // All time budget or utilization
+    if (data.allTimeSummary.budgetHours !== undefined && data.allTimeSummary.budgetHours > 0) {
       const progressRow = allTimeBody.createEl('tr');
       progressRow.createEl('td', { text: 'Progress', cls: 'summary-label' });
       progressRow.createEl('td', { text: `${Math.round((data.allTimeSummary.budgetProgress || 0) * 100)}%`, cls: 'summary-value' });
@@ -315,331 +336,214 @@ export class TimesheetReportView extends ItemView {
     }
   }
 
-  private renderDataTable(container: HTMLElement, data: { monthlyData: Array<{ label: string; hours: number; invoiced: number; rate: number; utilization: number; budgetHours?: number; budgetUsed?: number; budgetRemaining?: number; budgetProgress?: number; }> }) {
+  private renderDataTable(container: HTMLElement, monthlyData: any[]) {
     const tableContainer = container.createEl('div', {
-      cls: 'timesheet-table-container'
+      cls: 'timesheet-data-table-container'
     });
 
     const table = tableContainer.createEl('table', {
       cls: 'timesheet-data-table'
     });
 
-    // Check if this is a budget project
-    const isBudgetProject = data.monthlyData.some(month => month.budgetHours !== undefined);
+    // Determine if this is a budget project
+    const isBudgetProject = monthlyData.some(month => month.budgetHours !== undefined);
 
     // Table header
     const thead = table.createEl('thead');
     const headerRow = thead.createEl('tr');
 
+    headerRow.createEl('th', { text: 'Period' });
+    headerRow.createEl('th', { text: 'Hours' });
+    headerRow.createEl('th', { text: 'Invoiced' });
     if (isBudgetProject) {
-      ['Period', 'Hours', 'Invoiced', 'Rate', 'Progress', 'Remaining'].forEach(header => {
-        headerRow.createEl('th', { text: header });
-      });
+      headerRow.createEl('th', { text: 'Progress' });
     } else {
-      ['Period', 'Hours', 'Invoiced', 'Rate', 'Utilization'].forEach(header => {
-        headerRow.createEl('th', { text: header });
-      });
+      headerRow.createEl('th', { text: 'Utilization' });
     }
 
     // Table body
     const tbody = table.createEl('tbody');
 
-    data.monthlyData.forEach((month) => {
+    for (const month of monthlyData) {
       const row = tbody.createEl('tr');
 
       row.createEl('td', { text: month.label });
-      row.createEl('td', { text: this.formatNumber(month.hours) });
+      row.createEl('td', { text: `${this.formatNumber(month.hours)}h` });
       row.createEl('td', { text: `€${this.formatNumber(month.invoiced)}` });
-      row.createEl('td', { text: `€${this.formatNumber(month.rate)}` });
-
-      if (isBudgetProject && month.budgetProgress !== undefined) {
-        row.createEl('td', { text: `${Math.round(month.budgetProgress * 100)}%` });
-        row.createEl('td', { text: this.formatNumber(month.budgetRemaining || 0) });
+      if (isBudgetProject) {
+        row.createEl('td', { text: `${Math.round((month.budgetProgress || 0) * 100)}%` });
       } else {
         row.createEl('td', { text: `${Math.round(month.utilization * 100)}%` });
       }
-    });
+    }
   }
 
   private formatNumber(num: number): string {
-    return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    return num.toLocaleString('en-US', {
+      maximumFractionDigits: 1
+    });
   }
 
   /**
-   * Renders a section showing target hours calculation based on working days
-   * @param container - The parent container to add the section to
+   * Render target hours section for debugging
    */
   private renderTargetHoursSection(container: HTMLElement): void {
     const infoContainer = container.createEl('div', {
-      cls: 'timesheet-report-info-section'
+      cls: 'timesheet-info-container'
     });
 
-    infoContainer.createEl('h3', { text: 'Target Hours Calculation' });
+    infoContainer.createEl('h3', { text: 'Target Hours Information' });
 
-    try {
-      // Get current month and year
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based
+    // Get current month info
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
 
-      if (this.plugin.settings.debugMode) {
-        this.plugin.debugLogger.log('Rendering target hours section', {
-          currentYear,
-          currentMonth,
-          settings: this.plugin.settings
-        });
-      }
-
-      // Check if hoursPerWorkday exists in settings
-      const hoursPerDay = this.plugin.settings.hoursPerWorkday || 8; // Default to 8 if setting doesn't exist
-
-      // Use the data processor to calculate working days and target hours
-      const workingDays = this.dataProcessor.getWorkingDaysInMonth(currentYear, currentMonth);
-      const targetHours = this.dataProcessor.calculateTargetHoursForMonth(
-        currentYear,
-        currentMonth
-      );
-
-      // Create info text
-      const monthName = new Date(currentYear, currentMonth - 1, 1).toLocaleString('default', { month: 'long' });
-
-      infoContainer.createEl('p', {
-        text: `${monthName} ${currentYear} has ${workingDays} working days (Mon-Fri)`
-      });
-
-      infoContainer.createEl('p', {
-        text: `Target hours: ${workingDays} days × ${hoursPerDay} hours = ${targetHours} hours`
-      });
-
-      // Add note about customization
-      infoContainer.createEl('p', {
-        cls: 'timesheet-report-note',
-        text: 'Note: You can change the hours per workday in plugin settings.'
-      });
-    } catch (error) {
-      infoContainer.createEl('p', {
-        cls: 'timesheet-error',
-        text: `Error calculating target hours: ${error.message}`
-      });
-
-      if (this.plugin.settings.debugMode) {
-        this.plugin.debugLogger.log('Error in renderTargetHoursSection', error);
-      }
-      console.error('Error in renderTargetHoursSection:', error);
+    // Get working days and calculate target
+    const { settings } = this.plugin;
+    if (!settings) {
+      infoContainer.createEl('p', { text: 'Settings not available' });
+      return;
     }
+
+    const hoursPerDay = settings.hoursPerWorkday || 8;
+
+    // Calculate working days for current month
+    const workingDays = this.getWorkingDaysInMonth(currentYear, currentMonth);
+    const targetHours = workingDays * hoursPerDay;
+
+    const monthName = new Date(currentYear, currentMonth - 1, 1).toLocaleString('default', {
+      month: 'long'
+    });
+
+    infoContainer.createEl('p', {
+      text: `${monthName} ${currentYear}: ${workingDays} working days`
+    });
+
+    infoContainer.createEl('p', {
+      text: `Target hours: ${targetHours}h (${hoursPerDay}h per day)`
+    });
   }
 
-  // Diagnose potential issues with the timesheet folder configuration
-  private async diagnoseTimesheetFolder() {
-    const diagnosticContainer = this.contentEl.createDiv({ cls: 'timesheet-diagnostic' });
-    diagnosticContainer.createEl('h2', { text: 'Timesheet Folder Diagnostics' });
+  private getWorkingDaysInMonth(year: number, month: number): number {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    let workingDays = 0;
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return workingDays;
+  }
+
+  /**
+   * Helper to create a button and attach a click handler
+   */
+  private createButton(
+    parent: HTMLElement,
+    options: { cls: string; text: string; onClick: () => void }
+  ): HTMLButtonElement {
+    const btn = parent.createEl('button', {
+      cls: options.cls,
+      text: options.text
+    });
+    btn.addEventListener('click', options.onClick);
+    return btn;
+  }
+
+  /**
+   * Diagnose timesheet folder for troubleshooting
+   */
+  private async diagnoseTimesheetFolder(): Promise<string> {
+    const diagnosticContainer = this.contentEl.createEl('div', {
+      cls: 'timesheet-diagnostic-container'
+    });
+    diagnosticContainer.createEl('h3', { text: 'Diagnostic Information' });
 
     const timesheetFolder = this.plugin.settings.timesheetFolder;
 
-    try {
-      // Check if folder exists
-      const folder = this.plugin.app.vault.getAbstractFileByPath(timesheetFolder);
-
-      if (!folder) {
-        diagnosticContainer.createEl('p', {
-          text: `❌ Folder not found: "${timesheetFolder}"`,
-          cls: 'diagnostic-error'
-        });
-
-        // List available top-level folders to help the user choose the correct one
-        const rootFolders = this.plugin.app.vault.getRoot().children
-          .filter(file => 'children' in file) // Check if it's a folder
-          .map(folder => folder.path);
-
-        const foldersEl = diagnosticContainer.createEl('div', {
-          cls: 'diagnostic-folders'
-        });
-
-        foldersEl.createEl('p', { text: 'Available top-level folders:' });
-        const foldersList = foldersEl.createEl('ul');
-
-        rootFolders.forEach(folderPath => {
-          const item = foldersList.createEl('li');
-          item.createEl('code', { text: folderPath });
-        });
-
-        return;
-      }
-
+    // Check if folder exists
+    const folder = this.app.vault.getAbstractFileByPath(timesheetFolder);
+    if (!folder) {
       diagnosticContainer.createEl('p', {
-        text: `✅ Folder exists: "${timesheetFolder}"`,
-        cls: 'diagnostic-success'
-      });
-
-      // Check for markdown files in the folder
-      const allFiles = this.plugin.app.vault.getMarkdownFiles();
-      const folderFiles = allFiles
-        .filter(file => file.path.startsWith(timesheetFolder + '/'))
-        .map(file => file.path);
-
-      if (folderFiles.length === 0) {
-        diagnosticContainer.createEl('p', {
-          text: `❌ No markdown files found in folder "${timesheetFolder}"`,
-          cls: 'diagnostic-error'
-        });
-        return;
-      }
-
-      diagnosticContainer.createEl('p', {
-        text: `✅ Found ${folderFiles.length} markdown files in folder`,
-        cls: 'diagnostic-success'
-      });
-
-      // Show a few example files
-      const exampleFiles = folderFiles.slice(0, 5).join(", ");
-      const moreFiles = folderFiles.length > 5 ? ` and ${folderFiles.length - 5} more...` : "";
-
-      diagnosticContainer.createEl('p', {
-        text: `Example files: ${exampleFiles}${moreFiles}`,
-        cls: 'diagnostic-info'
-      });
-
-    } catch (error) {
-      diagnosticContainer.createEl('p', {
-        text: `❌ Error diagnosing folder: ${error.message}`,
+        text: `❌ Timesheet folder not found: ${timesheetFolder}`,
         cls: 'diagnostic-error'
       });
-    }
-  }
 
-  // Diagnose date extraction from timesheet files
-  private async diagnoseTimesheetDates() {
-    const diagnosticContainer = this.contentEl.createDiv({ cls: 'timesheet-diagnostic' });
-    diagnosticContainer.createEl('h2', { text: 'Timesheet Date Extraction Diagnostics' });
-
-    const timesheetFolder = this.plugin.settings.timesheetFolder;
-
-    try {
-      // Check if folder exists
-      const folder = this.plugin.app.vault.getAbstractFileByPath(timesheetFolder);
-
-      if (!folder) {
-        diagnosticContainer.createEl('p', {
-          text: `❌ Folder not found: "${timesheetFolder}"`,
-          cls: 'diagnostic-error'
-        });
-        return;
-      }
-
-      // Get timesheet files
-      const allFiles = this.plugin.app.vault.getMarkdownFiles();
-      const timesheetFiles = allFiles.filter(file =>
-        file.path.startsWith(timesheetFolder + '/') && file.extension === 'md'
+      // List all folders
+      const rootFolders = this.app.vault.getRoot().children.filter(
+        f => f instanceof this.app.vault.adapter.constructor
       );
 
-      if (timesheetFiles.length === 0) {
-        diagnosticContainer.createEl('p', {
-          text: `❌ No markdown files found in folder "${timesheetFolder}"`,
-          cls: 'diagnostic-error'
-        });
-        return;
+      const foldersEl = diagnosticContainer.createEl('div', {
+        cls: 'diagnostic-folders'
+      });
+
+      foldersEl.createEl('p', { text: 'Available root folders:' });
+      const foldersList = foldersEl.createEl('ul');
+
+      for (const f of rootFolders) {
+        const item = foldersList.createEl('li');
+        item.createEl('code', { text: f.path });
       }
 
+      return `Folder not found: ${timesheetFolder}`;
+    }
+
+    diagnosticContainer.createEl('p', {
+      text: `✅ Timesheet folder found: ${timesheetFolder}`,
+      cls: 'diagnostic-success'
+    });
+
+    // Check for files in folder
+    const allFiles = this.app.vault.getMarkdownFiles();
+    const folderFiles = allFiles.filter(file =>
+      file.path.startsWith(timesheetFolder)
+    );
+
+    diagnosticContainer.createEl('p', {
+      text: `📄 Found ${folderFiles.length} markdown files in folder`,
+      cls: 'diagnostic-info'
+    });
+
+    if (folderFiles.length === 0) {
       diagnosticContainer.createEl('p', {
-        text: `Checking ${timesheetFiles.length} timesheet files for valid dates...`,
+        text: '⚠️ No markdown files found in timesheet folder',
+        cls: 'diagnostic-warning'
+      });
+    } else {
+      // Show first few files
+      const exampleFiles = folderFiles.slice(0, 5);
+      const moreFiles = folderFiles.length - exampleFiles.length;
+
+      diagnosticContainer.createEl('p', {
+        text: 'Example files:',
         cls: 'diagnostic-info'
       });
 
-      // Create a table for results
-      const table = diagnosticContainer.createEl('table', { cls: 'diagnostic-table' });
-      const thead = table.createEl('thead');
-      const headerRow = thead.createEl('tr');
-      headerRow.createEl('th', { text: 'File' });
-      headerRow.createEl('th', { text: 'Date Extracted' });
-      headerRow.createEl('th', { text: 'Source' });
-      headerRow.createEl('th', { text: 'Status' });
-
-      const tbody = table.createEl('tbody');
-
-      // Check the first 10 files (to avoid too much processing)
-      const filesToCheck = timesheetFiles.slice(0, 10);
-      let successCount = 0;
-      let failCount = 0;
-
-      for (const file of filesToCheck) {
-        // Use Obsidian's metadata cache to get frontmatter
-        const cache = this.plugin.app.metadataCache.getFileCache(file);
-
-        // Try to extract date using dataProcessor methods
-        const date = await this.dataProcessor.extractDateFromFile(file);
-
-        const row = tbody.createEl('tr');
-        row.createEl('td', { text: file.basename });
-
-        const resolvedDate = await date;
-        if (resolvedDate && !isNaN(resolvedDate.getTime())) {
-          successCount++;
-
-          // Determine source of date extraction
-          let source = 'unknown';
-          if (cache?.frontmatter?.date) {
-            source = 'frontmatter';
-          } else if (file.basename.match(/\d{4}-\d{2}-\d{2}/)) {
-            source = 'filename';
-          } else if (file.path.match(/\/\d{4}-\d{2}-\d{2}/)) {
-            source = 'path';
-          }
-
-          row.createEl('td', { text: resolvedDate.toISOString().split('T')[0] });
-          row.createEl('td', { text: source });
-          row.createEl('td', { text: '✅ Valid' });
-        } else {
-          failCount++;
-          row.createEl('td', { text: 'Not found' });
-          row.createEl('td', { text: 'N/A' });
-          row.createEl('td', { text: '❌ Invalid' });
-        }
+      const filesList = diagnosticContainer.createEl('ul');
+      for (const file of exampleFiles) {
+        filesList.createEl('li').createEl('code', { text: file.path });
       }
 
-      // Show summary
-      const remainingFiles = timesheetFiles.length - filesToCheck.length;
-      const summaryText = `Results: ${successCount} valid, ${failCount} invalid${remainingFiles > 0 ? ` (${remainingFiles} more files not shown)` : ''}`;
-
-      diagnosticContainer.createEl('p', {
-        text: summaryText,
-        cls: failCount > 0 ? 'diagnostic-warning' : 'diagnostic-success'
-      });
-
-      // Show technical details about regex patterns used
-      if (this.plugin.settings.debugMode) {
-        const technicalDetails = diagnosticContainer.createEl('details');
-        technicalDetails.createEl('summary', { text: 'Technical Details' });
-
-        const patterns = technicalDetails.createEl('div', { cls: 'diagnostic-patterns' });
-        patterns.createEl('p', { text: 'Regular expressions used for date extraction:' });
-
-        const patternsList = patterns.createEl('ul');
-
-        const liFilename = patternsList.createEl('li');
-        liFilename.createEl('span', { text: 'Filename: ' });
-        liFilename.createEl('code', { text: '/(\\d{4})-(\\d{2})-(\\d{2})/' });
-
-        const liYaml = patternsList.createEl('li');
-        liYaml.createEl('span', { text: 'YAML: ' });
-        liYaml.createEl('code', { text: '/date:\\s*([\\d-/]+)/' });
-
-        const liPath = patternsList.createEl('li');
-        liPath.createEl('span', { text: 'Path: ' });
-        liPath.createEl('code', { text: '/\\/(\\d{4})-(\\d{2})-(\\d{2})/' });
-      }
-
-    } catch (error) {
-      diagnosticContainer.createEl('p', {
-        text: `❌ Error diagnosing dates: ${error.message}`,
-        cls: 'diagnostic-error'
-      });
-
-      if (this.plugin.settings.debugMode) {
-        diagnosticContainer.createEl('pre', {
-          text: error.stack,
-          cls: 'diagnostic-stack'
+      if (moreFiles > 0) {
+        diagnosticContainer.createEl('p', {
+          text: `... and ${moreFiles} more files`,
+          cls: 'diagnostic-info'
         });
       }
     }
+
+    return 'OK';
+  }
+
+  async onClose() {
+    // Clean up
   }
 }

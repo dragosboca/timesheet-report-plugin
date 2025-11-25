@@ -42,7 +42,7 @@ This document provides a complete reference for the frontmatter fields used by t
   per-hour: "85.50"
   ```
 - **Notes:** 
-  - **This is the preferred field name** for historical compatibility
+  - **This is the preferred field name**
   - Required for accurate invoice analysis graphs
 
 ### `rate` (Alternative)
@@ -78,7 +78,7 @@ If no rate is specified in frontmatter, the plugin will use:
   ```
 - **Notes:** 
   - If array, first element is used
-  - **This is the preferred field name** for historical compatibility
+  - **This is the preferred field name**
 
 ### `client` (Alternative)
 - **Type:** String or Array
@@ -222,7 +222,7 @@ client: "Multi-Task Client"
 - ✅ Verify date extraction (filename should contain YYYY-MM-DD)
 
 ### Invoice Analysis Shows $0
-- ✅ Use `per-hour` field (not `rate`) for historical compatibility
+- ✅ Use `per-hour` field (preferred over `rate`)
 - ✅ Set default rate in plugin settings if not in frontmatter
 - ✅ Ensure rate values are numeric (not text)
 

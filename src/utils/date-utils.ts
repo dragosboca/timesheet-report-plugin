@@ -250,4 +250,107 @@ export class DateUtils {
 
     return null;
   }
+
+  /**
+   * Format date as ISO string (YYYY-MM-DD)
+   */
+  static formatDateISO(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Get start and end of current month
+   */
+  static getCurrentMonthInterval(): { start: Date; end: Date } {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start, end };
+  }
+
+  /**
+   * Get start and end of last month
+   */
+  static getLastMonthInterval(): { start: Date; end: Date } {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { start, end };
+  }
+
+  /**
+   * Get start and end of current quarter
+   */
+  static getCurrentQuarterInterval(): { start: Date; end: Date } {
+    const now = new Date();
+    const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+    const start = new Date(now.getFullYear(), quarterStart, 1);
+    const end = new Date(now.getFullYear(), quarterStart + 3, 0);
+    return { start, end };
+  }
+
+  /**
+   * Get start and end of last quarter
+   */
+  static getLastQuarterInterval(): { start: Date; end: Date } {
+    const now = new Date();
+    const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+    const start = new Date(now.getFullYear(), quarterStart - 3, 1);
+    const end = new Date(now.getFullYear(), quarterStart, 0);
+    return { start, end };
+  }
+
+  /**
+   * Get start and end of current year
+   */
+  static getCurrentYearInterval(): { start: Date; end: Date } {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31);
+    return { start, end };
+  }
+
+  /**
+   * Get date range for last N days
+   */
+  static getLastNDaysInterval(days: number): { start: Date; end: Date } {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - days);
+    return { start, end: now };
+  }
+
+  /**
+   * Validate date range
+   */
+  static isValidDateRange(startDate: string, endDate: string): boolean {
+    const start = this.parseDate(startDate);
+    const end = this.parseDate(endDate);
+
+    if (!start || !end) return false;
+
+    return start <= end;
+  }
+
+  /**
+   * Get readable interval label
+   */
+  static getIntervalLabel(start: Date, end: Date): string {
+    const startStr = this.formatDateISO(start);
+    const endStr = this.formatDateISO(end);
+
+    // Check if it's a single month
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+      return `${this.MONTH_NAMES[start.getMonth()].charAt(0).toUpperCase() + this.MONTH_NAMES[start.getMonth()].slice(1)} ${start.getFullYear()}`;
+    }
+
+    // Check if it's a single year
+    if (start.getFullYear() === end.getFullYear() &&
+      start.getMonth() === 0 && start.getDate() === 1 &&
+      end.getMonth() === 11 && end.getDate() === 31) {
+      return `${start.getFullYear()}`;
+    }
+
+    return `${startStr} to ${endStr}`;
+  }
 }

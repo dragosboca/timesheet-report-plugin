@@ -65,17 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Real-time dashboards with live data embedding
 - Performance analytics for business development
 
-### Migration from Beta Versions
+### Breaking Changes
 
-**Breaking Changes:**
-- Removed legacy `targetHoursPerMonth` setting (replaced with dynamic calculation)
 - Updated chart rendering for improved performance
 - Refined settings UI organization
-
-**Automatic Migrations:**
-- Existing timesheet files work without modification
-- Settings automatically upgraded to new format
-- Historical data preserved and enhanced with new metrics
 
 ### Technical Improvements
 

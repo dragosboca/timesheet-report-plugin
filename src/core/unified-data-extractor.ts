@@ -64,12 +64,12 @@ export class UnifiedDataExtractor {
   }
 
   /**
-   * Get monthly data for reports (legacy compatibility)
+   * Get monthly data for reports
    */
   async getMonthlyData(year: number, month: number): Promise<DailyEntry[]> {
     const entries = await this.getTimesheetData({ year, month });
 
-    // Convert to legacy DailyEntry format
+    // Convert to DailyEntry format
     const dailyEntries: DailyEntry[] = [];
     const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -459,7 +459,7 @@ export class UnifiedDataExtractor {
   }
 
   /**
-   * Get available months/years from timesheet data (for backward compatibility)
+   * Get available months/years from timesheet data
    */
   async getAvailableMonths(): Promise<MonthData[]> {
     const entries = await this.getTimesheetData({});

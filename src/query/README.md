@@ -84,28 +84,91 @@ WHERE year >= 2023 AND project = "Internal"
 
 ### SHOW Clause
 
-Select specific fields to display.
+Select specific fields to display with enhanced column customization.
 
 ```sql
 SHOW <field>[, <field>]*
+SHOW <field> AS <alias>[, <field> AS <alias>]*
+SHOW <field> FORMAT <format_type>[, <field> FORMAT <format_type>]*
 ```
 
 #### Available Fields
 
-- `hours` - Total hours
+**Basic Fields:**
+- `date` - Entry date
+- `project` - Project name
+- `task` - Task description
+- `hours` - Hours worked
+- `rate` - Hourly rate
 - `invoiced` - Invoiced amount
-- `progress` - Budget progress
-- `utilization` - Utilization percentage
-- `remaining` - Remaining budget hours
+- `revenue` - Calculated revenue (hours * rate)
+
+**Utilization & Efficiency:**
+- `utilization` - Time utilization percentage
+- `efficiency` - Work efficiency percentage
+
+**Budget Fields:**
+- `budgetHours` - Total budget hours
+- `budgetUsed` - Hours used from budget
+- `budgetRemaining` - Remaining budget hours
+- `budgetProgress` - Budget completion percentage
+
+**Time Aggregations:**
+- `label` - Time period label
+- `year` - Year
+- `month` - Month
+- `week` - Week number
+
+**Client & Categorization:**
+- `client` - Client name
+- `category` - Work category
+- `tag` - Entry tag
+
+**Retainer Fields:**
+- `retainerHours` - Retainer hours used
+- `rolloverHours` - Hours rolled over
+- `contractValue` - Total contract value
+
+#### Column Aliases
+
+```sql
+-- Rename columns for better readability
+SHOW hours AS "Work Hours", invoiced AS "Amount Billed"
+SHOW project AS "Client Name", rate AS "Hourly Rate"
+```
+
+#### Formatting Options
+
+```sql
+-- Format currency values
+SHOW rate FORMAT CURRENCY, invoiced FORMAT MONEY
+
+-- Format percentages
+SHOW utilization FORMAT PERCENT, budgetProgress FORMAT PERCENTAGE
+
+-- Format with custom precision
+SHOW hours FORMAT DECIMAL(1), rate FORMAT CURRENCY(DECIMALS=0)
+```
 
 #### Examples
 
 ```sql
--- Show specific fields
-SHOW hours, invoiced
+-- Basic field selection
+SHOW hours, invoiced, project
 
--- Show all available fields
-SHOW hours, invoiced, progress, utilization
+-- With aliases and formatting
+SHOW 
+  project AS "Client",
+  hours AS "Work Hours",
+  rate FORMAT CURRENCY,
+  invoiced AS "Revenue" FORMAT MONEY
+
+-- Comprehensive project view
+SHOW 
+  project AS "Project Name",
+  budgetHours AS "Budget",
+  budgetUsed AS "Used",
+  budgetProgress FORMAT PERCENT AS "Progress"
 ```
 
 ### VIEW Clause
@@ -219,9 +282,27 @@ SIZE detailed
 
 ```sql
 WHERE date BETWEEN "2024-01-01" AND "2024-06-30"
-SHOW hours, invoiced, progress
+SHOW 
+  project AS "Project",
+  hours AS "Hours Worked",
+  invoiced FORMAT CURRENCY AS "Revenue"
 VIEW table
 SIZE compact
+```
+
+### Enhanced Project Analysis
+
+```sql
+// Comprehensive project breakdown with custom formatting
+WHERE project = "Client Alpha"
+SHOW 
+  project AS "Project Name",
+  hours AS "Total Hours",
+  rate FORMAT CURRENCY AS "Rate",
+  hours * rate FORMAT MONEY AS "Calculated Revenue",
+  budgetProgress FORMAT PERCENT AS "Budget Progress"
+VIEW table
+SIZE detailed
 ```
 
 ### Current Year Overview
@@ -229,6 +310,10 @@ SIZE compact
 ```sql
 // Show current year summary with charts
 WHERE year = 2024
+SHOW 
+  label AS "Month",
+  hours AS "Work Hours",
+  utilization FORMAT PERCENT AS "Utilization"
 VIEW chart
 CHART monthly
 PERIOD current-year
@@ -259,23 +344,50 @@ Common errors:
 - Unsupported operators
 - Malformed date formats
 
-## Future Extensions
+## Enhanced Query Features
 
-The grammar is designed to be extensible. Planned features:
+### Column Selection & Formatting
+- ✅ **Dynamic column selection**: Choose specific fields to display
+- ✅ **Column aliases**: Rename columns with `AS "Custom Name"`
+- ✅ **Format specifications**: `FORMAT CURRENCY`, `FORMAT PERCENT`, etc.
+- ✅ **Type-aware formatting**: Automatic formatting based on field type
+- ✅ **Comprehensive field library**: 25+ available fields
 
-1. **Logical OR**: `WHERE year = 2024 OR year = 2023`
-2. **IN operator**: `WHERE month IN (1, 2, 3)`
-3. **Nested conditions**: `WHERE (year = 2024 AND month > 6) OR project = "Special"`
-4. **Functions**: `WHERE YEAR(date) = 2024`
-5. **Aggregations**: `GROUP BY project`
+### Advanced Filtering
+- ✅ **Multiple operators**: `=`, `!=`, `>`, `<`, `>=`, `<=`, `BETWEEN`
+- ✅ **Date ranges**: `BETWEEN "2024-01-01" AND "2024-12-31"`
+- 🚧 **List filtering**: `WHERE project IN ("Alpha", "Beta")`
+- 🚧 **Pattern matching**: `WHERE project LIKE "Client%"`
+- 🚧 **Logical OR**: `WHERE year = 2024 OR year = 2023`
+
+### Future Extensions
+
+Planned features for upcoming versions:
+
+1. **Calculated Fields**: `SHOW hours * rate AS revenue`
+2. **Aggregation Functions**: `SHOW SUM(hours), AVG(rate)`
+3. **Grouping**: `GROUP BY project`
+4. **Advanced Sorting**: `ORDER BY revenue DESC`
+5. **Conditional Formatting**: Color-coding based on values
+6. **Nested Expressions**: Complex calculated fields
+7. **Custom Functions**: `WHERE YEAR(date) = 2024`
 
 ## Architecture
 
-The query language is implemented using:
+The enhanced query language is implemented using:
 
-1. **Tokenizer** (`tokenizer.ts`) - Lexical analysis
-2. **Parser** (`parser.ts`) - Syntax analysis and AST generation
-3. **AST** (`ast.ts`) - Abstract Syntax Tree node definitions
+1. **Grammar** (`grammar.pegjs`) - PEG-based grammar definition
+2. **AST** (`ast.ts`) - Abstract Syntax Tree node definitions
+3. **Parser** (`parser.ts`) - Syntax analysis and AST generation
 4. **Interpreter** (`interpreter.ts`) - AST execution and query object generation
+5. **Column Mapper** (`column-mapper.ts`) - Dynamic column selection and formatting
+6. **Enhanced Grammar** (`enhanced-grammar.pegjs`) - Extended grammar for advanced features
 
-This architecture makes the language robust, maintainable, and easily extensible.
+### Key Components
+
+- **Column Mapper**: Converts SHOW clauses to table columns with proper formatting
+- **Field Definitions**: Comprehensive field library with type information
+- **Format Processors**: Type-aware formatting for different data types
+- **Table Integration**: Seamless integration with existing table generation
+
+This modular architecture ensures the language is robust, maintainable, and easily extensible for future enhancements.

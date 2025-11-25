@@ -3,8 +3,8 @@
 
 import { Notice } from 'obsidian';
 import TimesheetReportPlugin from './main';
-import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ServiceCategory, ValueImpact } from './retainer-api';
-import { TimeEntry } from './data-processor';
+import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './retainer-api';
+import { ExtractedTimeEntry } from './core/unified-data-extractor';
 import { QueryNode } from './query';
 import { TimesheetQuery } from './query/interpreter';
 
@@ -68,8 +68,8 @@ export class RetainerIntegration {
     this.retainerAPI = new RetainerAPI(this.settings.retainer.contract);
   }
 
-  // Convert TimeEntry to RetainerUsage
-  private convertTimeEntryToRetainerUsage(entry: TimeEntry, metadata: RetainerEntryMetadata): RetainerUsage {
+  // Convert ExtractedTimeEntry to RetainerUsage
+  private convertTimeEntryToRetainerUsage(entry: ExtractedTimeEntry, metadata: RetainerEntryMetadata): RetainerUsage {
     return {
       date: new Date(entry.date),
       hours: entry.hours,
@@ -85,7 +85,7 @@ export class RetainerIntegration {
   }
 
   // Process timesheet entries for retainer tracking
-  processRetainerEntries(entries: TimeEntry[]): RetainerUsage[] {
+  processRetainerEntries(entries: ExtractedTimeEntry[]): RetainerUsage[] {
     if (!this.retainerAPI) {
       throw new Error('Retainer API not initialized');
     }
@@ -107,7 +107,7 @@ export class RetainerIntegration {
   }
 
   // Extract retainer metadata from timesheet entry
-  private extractRetainerMetadata(entry: TimeEntry): RetainerEntryMetadata {
+  private extractRetainerMetadata(entry: ExtractedTimeEntry): RetainerEntryMetadata {
     const metadata: RetainerEntryMetadata = {
       serviceCategory: 'general',
       priority: 'routine',
@@ -176,9 +176,10 @@ export class RetainerIntegration {
         return this.generateMonthlyReport(health, forecast);
       case 'quarterly':
         return this.generateQuarterlyReport(health, forecast);
-      case 'renewal':
+      case 'renewal': {
         const renewal = this.retainerAPI.prepareRenewalData();
         return this.generateRenewalReport(renewal);
+      }
       default:
         throw new Error(`Unknown report type: ${type}`);
     }

@@ -10,39 +10,7 @@ export class ObsidianReportSaver {
     this.app = plugin.app;
   }
 
-  /**
-   * Save the generated report to the configured output folder
-   */
-  async saveReport(year: number, month: number, content: string): Promise<TFile> {
-    const outputFolderPath = normalizePath(this.plugin.settings.reportOutputFolder);
 
-    // Ensure the output folder structure exists
-    await this.ensureFolderExists(outputFolderPath);
-
-    // Generate filename and full path
-    const filename = this.generateReportFilename(year, month);
-    const filepath = normalizePath(`${outputFolderPath}/${filename}`);
-
-    try {
-      // Check if file already exists
-      const existingFile = this.app.vault.getAbstractFileByPath(filepath);
-
-      if (existingFile instanceof TFile) {
-        // Update existing file
-        this.plugin.debugLogger?.log(`Updating existing report: ${filepath}`);
-        await this.app.vault.modify(existingFile, content);
-        return existingFile;
-      } else {
-        // Create new file
-        this.plugin.debugLogger?.log(`Creating new report: ${filepath}`);
-        const newFile = await this.app.vault.create(filepath, content);
-        return newFile;
-      }
-    } catch (error) {
-      this.plugin.debugLogger?.log('Error saving report:', error);
-      throw new Error(`Failed to save report to ${filepath}: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
 
   /**
    * Ensure that the folder structure exists, creating it if necessary
@@ -88,73 +56,50 @@ export class ObsidianReportSaver {
     }
   }
 
+
+
   /**
-   * Generate filename for the report based on settings and date
+   * Save interval report with custom name
    */
-  private generateReportFilename(year: number, month: number): string {
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+  async saveIntervalReport(reportName: string, content: string): Promise<TFile> {
+    const outputFolderPath = normalizePath(this.plugin.settings.reportOutputFolder);
 
-    const monthName = monthNames[month - 1];
-    const paddedMonth = String(month).padStart(2, '0');
+    // Ensure the output folder structure exists
+    await this.ensureFolderExists(outputFolderPath);
 
-    // Include project name in filename for better organization
-    const projectName = this.plugin.settings.project.name
-      .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-')     // Replace spaces with hyphens
-      .trim();
+    // Generate filename and full path
+    const filename = `${reportName}.md`;
+    const filepath = normalizePath(`${outputFolderPath}/${filename}`);
 
-    return `${year}-${paddedMonth}-${monthName}-${projectName}-Report.md`;
+    try {
+      // Check if file already exists
+      const existingFile = this.app.vault.getAbstractFileByPath(filepath);
+
+      if (existingFile instanceof TFile) {
+        // Update existing file
+        await this.app.vault.modify(existingFile, content);
+        return existingFile;
+      } else {
+        // Create new file
+        return await this.app.vault.create(filepath, content);
+      }
+    } catch (error) {
+      throw new Error(`Failed to save interval report: ${error.message}`);
+    }
   }
 
+
+
   /**
-   * Get the full path where a report would be saved
+   * Generate interval report path for checking existence
    */
-  getReportPath(year: number, month: number): string {
+  getIntervalReportPath(reportName: string): string {
     const outputFolderPath = normalizePath(this.plugin.settings.reportOutputFolder);
-    const filename = this.generateReportFilename(year, month);
+    const filename = `${reportName}.md`;
     return normalizePath(`${outputFolderPath}/${filename}`);
   }
 
-  /**
-   * Check if a report already exists for the given month/year
-   */
-  async reportExists(year: number, month: number): Promise<boolean> {
-    const filepath = this.getReportPath(year, month);
-    const existingFile = this.app.vault.getAbstractFileByPath(filepath);
-    return existingFile instanceof TFile;
-  }
 
-  /**
-   * Get an existing report file if it exists
-   */
-  async getExistingReport(year: number, month: number): Promise<TFile | null> {
-    const filepath = this.getReportPath(year, month);
-    const existingFile = this.app.vault.getAbstractFileByPath(filepath);
-    return existingFile instanceof TFile ? existingFile : null;
-  }
-
-  /**
-   * Delete a report if it exists
-   */
-  async deleteReport(year: number, month: number): Promise<boolean> {
-    const existingFile = await this.getExistingReport(year, month);
-
-    if (existingFile) {
-      try {
-        await this.app.vault.delete(existingFile);
-        this.plugin.debugLogger?.log(`Deleted report: ${existingFile.path}`);
-        return true;
-      } catch (error) {
-        this.plugin.debugLogger?.log('Error deleting report:', error);
-        throw new Error(`Failed to delete report: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Get all existing reports in the output folder

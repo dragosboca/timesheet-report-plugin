@@ -229,6 +229,7 @@ describe('QueryInterpreter', () => {
           project: 'Dashboard Project'
         },
         show: ['hours', 'invoiced', 'progress'],
+        columns: expect.any(Array),
         view: 'full',
         chartType: 'trend',
         period: 'last-12-months',
@@ -253,10 +254,11 @@ describe('QueryInterpreter', () => {
           month: 6
         },
         show: ['hours', 'invoiced', 'progress', 'remaining'],
+        columns: expect.any(Array),
         view: 'chart',
         chartType: 'budget',
-        period: 'current-year',  // Default period
-        size: 'normal'  // Default size
+        period: 'current-year',
+        size: 'normal'
       });
     });
 
