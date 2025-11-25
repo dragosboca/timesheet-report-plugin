@@ -1,6 +1,6 @@
 # Timesheet Report Plugin for Obsidian
 
-A comprehensive timesheet reporting plugin that generates interactive visualizations, tracks project budgets, and creates detailed reports from your timesheet data stored in Obsidian.
+A comprehensive timesheet reporting plugin that generates interactive visualizations, tracks project budgets, and creates detailed reports from your timesheet data stored in Obsidian. Features a powerful SQL-like query language with grammar-based parser for flexible data filtering and reporting.
 
 ## Features
 
@@ -11,6 +11,8 @@ A comprehensive timesheet reporting plugin that generates interactive visualizat
 - **🔗 Embedded Reports**: Insert live timesheet data anywhere in your vault using query syntax
 - **🎨 Advanced Theme Integration**: Seamlessly adapts to your current theme with Style Settings plugin support
 - **⚙️ Flexible Configuration**: Support for hourly, fixed-budget, and retainer project types
+- **🚀 Grammar-Based Parser**: Professional query language with tokenization, AST parsing, and type safety
+- **🔍 Advanced Query Language**: SQL-like syntax with proper error messages and extensible architecture
 
 ## Quick Start
 
@@ -131,26 +133,32 @@ You can also use tables for detailed breakdowns:
 
 ## Embedding Reports in Notes
 
-Embed live timesheet reports anywhere in your vault using a SQL-like query syntax:
+Embed live timesheet reports anywhere in your vault using our powerful SQL-like query language. The grammar-based parser provides excellent error messages, supports comments, and enables complex filtering:
 
 ### Basic Examples
 
 **Quick summary in daily notes**:
 ```timesheet
-PERIOD current-year
+// Current year summary for widgets
+WHERE year = 2024
 VIEW summary
 SIZE compact
 ```
 
 **Project dashboard with full details**:
 ```timesheet
-WHERE year = 2024
+// Complete project analysis
+WHERE project = "Client Alpha" AND year = 2024
 VIEW full
+CHART trend
+PERIOD last-6-months
 SIZE detailed
 ```
 
-**Budget tracking chart**:
+**Budget tracking with date range**:
 ```timesheet
+// Q4 2024 budget progress
+WHERE date BETWEEN "2024-10-01" AND "2024-12-31"
 CHART budget
 VIEW chart
 SIZE normal
@@ -158,11 +166,21 @@ SIZE normal
 
 ### Query Syntax Reference
 
+The query language uses a grammar-based parser for robust syntax validation and excellent error reporting.
+
 #### WHERE Clauses (Filters)
 - `WHERE year = 2024` - Filter by year
 - `WHERE month = 3` - Filter by month (1-12)
-- `WHERE project = "Client ABC"` - Filter by project
+- `WHERE project = "Client ABC"` - Filter by project (quotes required for strings)
 - `WHERE date BETWEEN "2024-01-01" AND "2024-03-31"` - Date range
+- `WHERE year = 2024 AND month >= 10` - Multiple conditions with AND
+- `// Comments are supported` - Add comments anywhere in your queries
+
+#### Operators
+- `=`, `!=` - Equality and inequality
+- `>`, `<`, `>=`, `<=` - Comparison operators
+- `BETWEEN ... AND ...` - Range queries
+- `AND` - Logical conjunction
 
 #### VIEW Types
 - `VIEW summary` - Key metrics cards
@@ -188,12 +206,13 @@ SIZE normal
 
 ### Advanced Embedding
 
-**Monthly review template**:
+**Monthly review template with comments**:
 ```markdown
 # March 2024 Review
 
 ## Performance Summary
 ```timesheet
+// Monthly performance metrics
 WHERE year = 2024 AND month = 3
 VIEW summary
 SIZE detailed
@@ -201,14 +220,26 @@ SIZE detailed
 
 ## Budget Progress  
 ```timesheet
+// Budget tracking visualization
+WHERE project = "Q1 Deliverables"
 CHART budget
 VIEW chart
 ```
 
 ## Detailed Breakdown
 ```timesheet
+// Complete data table for the month
 WHERE year = 2024 AND month = 3
 VIEW table
+SIZE normal
+```
+
+## Year-over-Year Comparison
+```timesheet
+// Compare with previous year
+WHERE month = 3 AND (year = 2024 OR year = 2023)
+VIEW chart
+CHART trend
 ```
 ```
 
@@ -387,7 +418,19 @@ src/
 ├── data-processor.ts    # Data processing logic
 ├── chart-renderer.ts    # Chart visualization
 ├── report-generator.ts  # Report creation
-└── embed-processor.ts   # Embedding system
+├── embed-processor.ts   # Embedding system
+└── query/               # Grammar-based query parser
+    ├── tokenizer.ts     # Lexical analysis
+    ├── parser.ts        # Syntax analysis & AST
+    ├── interpreter.ts   # Query execution
+    └── ast.ts           # AST node definitions
+
+tests/
+└── parser.test.ts       # Parser unit tests
+
+examples/
+├── query-examples.md    # Query syntax examples
+└── usage-examples.ts    # TypeScript usage patterns
 ```
 
 ### Building from Source
@@ -396,11 +439,21 @@ git clone [repository-url]
 cd timesheet-report-plugin
 npm install
 npm run build
+npm test  # Run Jest test suite
 ```
 
 ### Contributing
 
-Contributions welcome! See `CONTRIBUTING.md` for guidelines.
+Contributions welcome! The grammar-based parser architecture makes it easy to add new features:
+
+**Adding New Query Features:**
+1. Add tokens to `tokenizer.ts`
+2. Define AST nodes in `ast.ts`
+3. Extend parser rules in `parser.ts`
+4. Add interpreter logic in `interpreter.ts`
+5. Update tests and documentation
+
+See `examples/usage-examples.ts` for development patterns.
 
 ## License
 
@@ -409,8 +462,19 @@ MIT License - see `LICENSE` file for details.
 ## Support
 
 - **Issues**: GitHub repository issues
-- **Documentation**: See `USER_GUIDE.md` for detailed usage
+- **Query Documentation**: See `examples/query-examples.md` for complete syntax guide
+- **API Documentation**: See `examples/usage-examples.ts` for TypeScript patterns
 - **Community**: Obsidian Discord #plugin-dev channel
+
+## Parser Architecture
+
+Built with a professional-grade parser featuring:
+- **Lexical Analysis**: Robust tokenization with line/column error reporting
+- **Syntax Analysis**: Grammar-based parsing with detailed error messages
+- **Type Safety**: Full TypeScript types throughout the AST
+- **Extensibility**: Easy to add new operators, clauses, and features
+- **Performance**: Fast parsing suitable for real-time use
+- **Jest Testing**: Comprehensive test suite using Jest framework
 
 ---
 
