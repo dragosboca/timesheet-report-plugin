@@ -42,8 +42,11 @@ export {
 
 export {
   QueryInterpreter,
-  QueryOptions,
-  DateRange
+  InterpreterError
+} from './interpreter';
+
+export type {
+  TimesheetQuery
 } from './interpreter';
 
 // Export the Peggy-based parser
