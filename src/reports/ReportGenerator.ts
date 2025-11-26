@@ -60,7 +60,7 @@ export class ReportGenerator {
             columns: query.columns
           };
 
-          const table = this.tableFactory.createTimesheetTable(data.entries, tableOptions);
+          const table = this.tableFactory.createQueryTable(data.entries as unknown as Record<string, unknown>[], tableOptions);
           const tableContent = table.render({ format: 'markdown' });
 
           // Replace template placeholders with actual values
@@ -128,7 +128,7 @@ export class ReportGenerator {
         columns: query.columns
       };
 
-      const table = this.tableFactory.createTimesheetTable(data.entries, tableOptions);
+      const table = this.tableFactory.createQueryTable(data.entries as unknown as Record<string, unknown>[], tableOptions);
       const tableContent = table.render({ format: 'markdown' });
       lines.push(tableContent);
     } else {

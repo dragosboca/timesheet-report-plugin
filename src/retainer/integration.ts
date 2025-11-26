@@ -4,7 +4,7 @@
 import { Notice } from 'obsidian';
 import TimesheetReportPlugin from '../main';
 import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './api';
-import { ExtractedTimeEntry } from '../core/unified-data-extractor';
+import { ExtractedTimeEntry } from '../query/data-extractors';
 import { QueryNode } from '../query';
 import { TimesheetQuery } from '../query';
 

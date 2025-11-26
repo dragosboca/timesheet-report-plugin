@@ -479,7 +479,7 @@ export class UnifiedDataExtractor {
 
     // Convert to MonthData format
     const monthlyData: MonthData[] = [];
-    for (const [key, monthData] of monthMap.entries()) {
+    for (const [, monthData] of monthMap.entries()) {
       const totalHours = monthData.entries.reduce((sum, entry) => sum + entry.hours, 0);
       const totalInvoiced = monthData.entries.reduce((sum, entry) => sum + (entry.hours * (entry.rate || 0)), 0);
       const avgRate = totalHours > 0 ? totalInvoiced / totalHours : 0;

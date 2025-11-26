@@ -1,20 +1,17 @@
 // Table Factory - creates table instances based on type
 
 import TimesheetReportPlugin from '../main';
-import { TimesheetTable } from './types/TimesheetTable';
 import { DailyTable } from './types/DailyTable';
 import { MonthlyTable } from './types/MonthlyTable';
 import { MonthlyTableData } from './types/MonthlyTable';
 import { QueryTable } from './types/QueryTable';
 import { TableOptions } from './base/TableConfig';
-import { ExtractedTimeEntry } from '../core/unified-data-extractor';
 import { DailyEntry } from '../types';
 
 /**
  * Table type enumeration
  */
 export enum TableType {
-  TIMESHEET = 'timesheet',
   DAILY = 'daily',
   MONTHLY = 'monthly',
   QUERY = 'query'
@@ -28,13 +25,6 @@ export class TableFactory {
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
-  }
-
-  /**
-   * Create a timesheet table
-   */
-  createTimesheetTable(data: ExtractedTimeEntry[], options: TableOptions): TimesheetTable {
-    return new TimesheetTable(this.plugin, data, options);
   }
 
   /**
@@ -63,13 +53,10 @@ export class TableFactory {
    */
   createTable(
     type: TableType | string,
-    data: ExtractedTimeEntry[] | DailyEntry[] | MonthlyTableData[] | Record<string, unknown>[],
+    data: DailyEntry[] | MonthlyTableData[] | Record<string, unknown>[],
     options: TableOptions
-  ): TimesheetTable | DailyTable | MonthlyTable | QueryTable {
+  ): DailyTable | MonthlyTable | QueryTable {
     switch (type.toLowerCase()) {
-      case TableType.TIMESHEET:
-        return this.createTimesheetTable(data as ExtractedTimeEntry[], options);
-
       case TableType.DAILY:
         return this.createDailyTable(data as DailyEntry[], options);
 
@@ -88,7 +75,7 @@ export class TableFactory {
    * Get available table types
    */
   getAvailableTableTypes(): TableType[] {
-    return [TableType.TIMESHEET, TableType.DAILY, TableType.MONTHLY, TableType.QUERY];
+    return [TableType.DAILY, TableType.MONTHLY, TableType.QUERY];
   }
 
   /**

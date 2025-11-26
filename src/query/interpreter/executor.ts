@@ -2,7 +2,7 @@
 // This bridges the query system with the data layer
 
 import { TimesheetQuery } from './interpreter';
-import { ExtractedTimeEntry, UnifiedDataExtractor, ExtractionOptions } from '../../core/unified-data-extractor';
+import { ExtractedTimeEntry, UnifiedDataExtractor, ExtractionOptions } from '../data-extractors';
 import { DateUtils } from '../../utils/date-utils';
 import TimesheetReportPlugin from '../../main';
 import { MonthData } from '../../types';

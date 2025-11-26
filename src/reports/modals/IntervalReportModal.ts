@@ -420,7 +420,7 @@ export class IntervalReportModal extends Modal {
         };
 
         const limitedEntries = processedData.entries.slice(0, 5); // Show only first 5 entries
-        const table = this.tableFactory.createTimesheetTable(limitedEntries, tableOptions);
+        const table = this.tableFactory.createQueryTable(limitedEntries as unknown as Record<string, unknown>[], tableOptions);
         const tableHtml = table.render({ format: 'html' });
 
         const tableContainer = this.previewContainer.createEl('div', {

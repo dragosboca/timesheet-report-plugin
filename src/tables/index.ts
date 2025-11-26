@@ -1,7 +1,6 @@
 // Tables module exports
 
 export { TableFactory, TableType } from './TableFactory';
-export { TimesheetTable } from './types/TimesheetTable';
 export { DailyTable } from './types/DailyTable';
 export { MonthlyTable } from './types/MonthlyTable';
 export type { MonthlyTableData } from './types/MonthlyTable';
