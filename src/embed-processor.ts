@@ -2,23 +2,21 @@
 
 import { MarkdownPostProcessorContext } from 'obsidian';
 import TimesheetReportPlugin from './main';
-import { QueryProcessor } from './core/query-processor';
+import { QueryExecutor, parseQuery, ParseError, QueryInterpreter, TimesheetQuery, InterpreterError } from './query';
 import { ChartFactory } from './charts';
 import { TableFactory } from './tables';
-import { parseQuery, ParseError } from './query/parser';
-import { QueryInterpreter, TimesheetQuery, InterpreterError } from './query/interpreter';
 import { Formatter } from './rendering';
 
 export class EmbedProcessor {
   private plugin: TimesheetReportPlugin;
-  private queryProcessor: QueryProcessor;
+  private queryExecutor: QueryExecutor;
   private chartFactory: ChartFactory;
   private tableFactory: TableFactory;
   private formatter: Formatter;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
-    this.queryProcessor = new QueryProcessor(plugin);
+    this.queryExecutor = new QueryExecutor(plugin);
     this.chartFactory = new ChartFactory(plugin);
     this.tableFactory = new TableFactory(plugin);
     this.formatter = new Formatter(plugin.settings.currencySymbol || '€');
@@ -62,7 +60,7 @@ export class EmbedProcessor {
 
     try {
       // Process query to get filtered data
-      const processedData = await this.queryProcessor.processQuery(query);
+      const processedData = await this.queryExecutor.execute(query);
 
       // Render based on view type
       switch (query.view) {

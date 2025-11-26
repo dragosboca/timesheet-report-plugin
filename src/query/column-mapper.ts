@@ -311,12 +311,37 @@ export class ColumnMapper {
   /**
    * Parse a field identifier into a column mapping
    */
-  private parseField(field: IdentifierNode): ColumnMapping {
+  private parseField(field: IdentifierNode | any): ColumnMapping {
     // Handle simple field names for now
     // TODO: Parse complex expressions like "hours AS 'Work Hours'", "SUM(hours)", etc.
+    let fieldName: string;
+
+    if (field.type === 'Identifier') {
+      fieldName = field.name;
+    } else if (field.type === 'EnhancedField') {
+      // Extract field name from enhanced field expression
+      if (field.expression.type === 'Identifier') {
+        fieldName = field.expression.name;
+      } else if (field.expression.type === 'AggregationFunction') {
+        fieldName = `${field.expression.function}_${field.expression.field.name}`;
+      } else if (field.expression.type === 'CalculatedField') {
+        fieldName = this.extractFieldNameFromCalculation(field.expression);
+      } else {
+        fieldName = 'unknown';
+      }
+    } else {
+      fieldName = 'unknown';
+    }
     return {
-      field: this.normalizeFieldName(field.name)
+      field: this.normalizeFieldName(fieldName)
     };
+  }
+
+  private extractFieldNameFromCalculation(expr: any): string {
+    if (expr.left && expr.left.type === 'Identifier') {
+      return expr.left.name;
+    }
+    return 'calculated';
   }
 
   /**

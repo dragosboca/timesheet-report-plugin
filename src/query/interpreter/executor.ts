@@ -1,9 +1,11 @@
-// Enhanced query processor that consolidates filtering and processing logic
+// Query executor that processes timesheet queries and returns aggregated data
+// This bridges the query system with the data layer
 
-import { TimesheetQuery } from '../query/interpreter';
-import { ExtractedTimeEntry, UnifiedDataExtractor, ExtractionOptions } from './unified-data-extractor';
-import { DateUtils } from '../utils/date-utils';
-import TimesheetReportPlugin from '../main';
+import { TimesheetQuery } from './interpreter';
+import { ExtractedTimeEntry, UnifiedDataExtractor, ExtractionOptions } from '../../core/unified-data-extractor';
+import { DateUtils } from '../../utils/date-utils';
+import TimesheetReportPlugin from '../../main';
+import { MonthData } from '../../types';
 
 export interface ProcessedData {
   entries: ExtractedTimeEntry[];
@@ -44,7 +46,11 @@ export interface SummaryData {
   budgetRemaining?: number;
 }
 
-export class QueryProcessor {
+/**
+ * Executes timesheet queries and returns processed data
+ * This is the bridge between the query system and the data layer
+ */
+export class QueryExecutor {
   private plugin: TimesheetReportPlugin;
   private dataExtractor: UnifiedDataExtractor;
 
@@ -54,9 +60,9 @@ export class QueryProcessor {
   }
 
   /**
-   * Process a timesheet query and return filtered/aggregated data
+   * Execute a timesheet query and return filtered/aggregated data
    */
-  async processQuery(query: TimesheetQuery): Promise<ProcessedData> {
+  async execute(query: TimesheetQuery): Promise<ProcessedData> {
     // Convert query to extraction options
     const extractionOptions = this.convertQueryToExtractionOptions(query);
 
@@ -163,7 +169,6 @@ export class QueryProcessor {
       if (query.where.utilization !== undefined) {
         const threshold = query.where.utilization;
         filtered = filtered.filter(entry => {
-          // This is a simple implementation - could be more sophisticated
           const dailyTarget = this.plugin.settings.hoursPerWorkday || 8;
           const dailyUtilization = entry.hours / dailyTarget;
           return dailyUtilization >= threshold;
@@ -386,20 +391,25 @@ export class QueryProcessor {
   }
 
   /**
-   * Calculate working days between two dates
+   * Get available months/years from timesheet data
    */
-  private calculateWorkingDaysBetween(startDate: Date, endDate: Date): number {
-    let workingDays = 0;
-    const currentDate = new Date(startDate);
+  async getAvailableMonths(): Promise<MonthData[]> {
+    // Get all timesheet data (no filters)
+    const entries = await this.dataExtractor.getTimesheetData({});
 
-    while (currentDate <= endDate) {
-      if (!DateUtils.isWeekend(currentDate)) {
-        workingDays++;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    // Generate monthly data using existing logic
+    const monthlyData = this.generateMonthlyData(entries);
 
-    return workingDays;
+    // Convert MonthlyDataPoint to MonthData format
+    return monthlyData.map(point => ({
+      year: point.year,
+      month: point.month,
+      label: point.label,
+      hours: point.hours,
+      invoiced: point.invoiced,
+      utilization: point.utilization,
+      rate: point.rate
+    } as MonthData));
   }
 
   /**

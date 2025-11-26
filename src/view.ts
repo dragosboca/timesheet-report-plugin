@@ -1,8 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import TimesheetReportPlugin from './main';
 import { ChartFactory } from './charts';
-import { QueryProcessor } from './core/query-processor';
-import { TimesheetQuery } from './query/interpreter';
+import { QueryExecutor, TimesheetQuery } from './query';
 
 export const VIEW_TYPE_TIMESHEET = 'timesheet-report-view';
 
@@ -10,13 +9,13 @@ export class TimesheetReportView extends ItemView {
   private plugin: TimesheetReportPlugin;
   public contentEl: HTMLElement;
   private chartFactory: ChartFactory;
-  private queryProcessor: QueryProcessor;
+  private queryExecutor: QueryExecutor;
   private isLoading = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: TimesheetReportPlugin) {
     super(leaf);
     this.plugin = plugin;
-    this.queryProcessor = new QueryProcessor(this.plugin);
+    this.queryExecutor = new QueryExecutor(this.plugin);
     this.chartFactory = new ChartFactory(this.plugin);
   }
 
@@ -123,7 +122,7 @@ export class TimesheetReportView extends ItemView {
       };
 
       // Process data using QueryProcessor
-      const reportData = await this.queryProcessor.processQuery(query);
+      const reportData = await this.queryExecutor.execute(query);
 
       if (this.plugin.settings.debugMode) {
         this.plugin.debugLogger.log('Data processed successfully', {

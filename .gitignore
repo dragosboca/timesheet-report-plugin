@@ -18,6 +18,9 @@ main.js
 # obsidian
 data.json
 
+# Local development config
+install-config.json
+
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 

@@ -4,7 +4,7 @@ import { TimesheetReportSettings, DEFAULT_SETTINGS, TimesheetReportSettingTab } 
 import { DebugLogger } from './debug-logger';
 import { ReportGenerator } from './report-generator';
 import { EmbedProcessor } from './embed-processor';
-import { QueryProcessor } from './core/query-processor';
+import { QueryExecutor } from './query';
 // Import Chart.js initialization to register all required components
 import './charts/chartjs-init';
 
@@ -13,7 +13,7 @@ export default class TimesheetReportPlugin extends Plugin {
   debugLogger: DebugLogger;
   reportGenerator: ReportGenerator;
   embedProcessor: EmbedProcessor;
-  queryProcessor: QueryProcessor;
+  queryExecutor: QueryExecutor;
 
   async onload() {
     await this.loadSettings();
@@ -22,8 +22,8 @@ export default class TimesheetReportPlugin extends Plugin {
     this.debugLogger = DebugLogger.getInstance();
     this.debugLogger.enable(this.settings.debugMode);
 
-    // Initialize query processor
-    this.queryProcessor = new QueryProcessor(this);
+    // Initialize query executor
+    this.queryExecutor = new QueryExecutor(this);
 
     // Initialize report generator
     this.reportGenerator = new ReportGenerator(this);
@@ -119,8 +119,8 @@ export default class TimesheetReportPlugin extends Plugin {
 
   onunload() {
     // Clear any cached data
-    if (this.queryProcessor) {
-      this.queryProcessor.clearCache();
+    if (this.queryExecutor) {
+      this.queryExecutor.clearCache();
     }
     // Plugin cleanup - views will be automatically cleaned up
   }

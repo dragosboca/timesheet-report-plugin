@@ -1,11 +1,9 @@
 import { Modal, App, Setting, Notice, TFile, DropdownComponent, TextComponent, ButtonComponent } from 'obsidian';
 import TimesheetReportPlugin from './main';
-import { TimesheetQuery, QueryInterpreter } from './query/interpreter';
-import { QueryProcessor } from './core/query-processor';
+import { TimesheetQuery, QueryInterpreter, QueryExecutor } from './query';
 import { TableFactory } from './tables/TableFactory';
 import { TableOptions } from './tables/base/TableConfig';
 import { ReportGenerator } from './report-generator';
-import { ObsidianTemplateManager } from './template-manager';
 import { DateUtils } from './utils/date-utils';
 
 interface DateInterval {
@@ -42,10 +40,9 @@ export class IntervalReportModal extends Modal {
   private previewContainer!: HTMLElement;
 
   // Query processing
-  private queryProcessor: QueryProcessor;
+  private queryExecutor: QueryExecutor;
   private queryInterpreter: QueryInterpreter;
   private tableFactory: TableFactory;
-  private templateManager: ObsidianTemplateManager;
   private reportGenerator: ReportGenerator;
 
   constructor(plugin: TimesheetReportPlugin) {
@@ -72,10 +69,9 @@ export class IntervalReportModal extends Modal {
     this.availableTemplates = [];
 
     // Initialize services
-    this.queryProcessor = new QueryProcessor(plugin);
+    this.queryExecutor = new QueryExecutor(plugin);
     this.queryInterpreter = new QueryInterpreter();
     this.tableFactory = new TableFactory(plugin);
-    this.templateManager = new ObsidianTemplateManager(plugin);
     this.reportGenerator = new ReportGenerator(plugin);
   }
 
@@ -103,7 +99,7 @@ export class IntervalReportModal extends Modal {
 
   private async loadAvailableData(): Promise<void> {
     // Load available templates
-    const templates = await this.templateManager.getAvailableTemplates();
+    const templates = await this.reportGenerator.getAvailableTemplates();
     this.availableTemplates = templates.map(t => t.name || t.path);
   }
 
@@ -399,31 +395,31 @@ export class IntervalReportModal extends Modal {
 
       // Parse and execute query
       const query = this.parseQuery();
-      const data = await this.queryProcessor.processQuery(query);
+      const processedData = await this.queryExecutor.execute(query);
 
       // Generate preview stats
       const statsEl = this.previewContainer.createEl('div', {
         cls: 'timesheet-preview-stats'
       });
 
-      const totalHours = data.summary.totalHours || 0;
-      const totalRevenue = data.summary.totalInvoiced || 0;
-      const avgUtilization = data.summary.utilization || 0;
+      const totalHours = processedData.summary.totalHours || 0;
+      const totalRevenue = processedData.summary.totalInvoiced || 0;
+      const avgUtilization = processedData.summary.utilization || 0;
 
       this.addStatRow(statsEl, 'Total Hours', totalHours.toFixed(2));
       this.addStatRow(statsEl, 'Total Revenue', `€${totalRevenue.toFixed(2)}`);
       this.addStatRow(statsEl, 'Avg Utilization', `${Math.round(avgUtilization * 100)}%`);
-      this.addStatRow(statsEl, 'Entries Found', data.entries.length.toString());
+      this.addStatRow(statsEl, 'Entries Found', processedData.entries.length.toString());
 
       // Generate table preview (limited)
-      if (data.entries.length > 0) {
+      if (processedData.entries.length > 0) {
         const tableOptions: TableOptions = {
           format: 'html',
           cssClass: 'timesheet-preview-table',
           columns: query.columns
         };
 
-        const limitedEntries = data.entries.slice(0, 5); // Show only first 5 entries
+        const limitedEntries = processedData.entries.slice(0, 5); // Show only first 5 entries
         const table = this.tableFactory.createTimesheetTable(limitedEntries, tableOptions);
         const tableHtml = table.render({ format: 'html' });
 
@@ -432,9 +428,9 @@ export class IntervalReportModal extends Modal {
         });
         tableContainer.innerHTML = tableHtml;
 
-        if (data.entries.length > 5) {
+        if (processedData.entries.length > 5) {
           tableContainer.createEl('p', {
-            text: `... and ${data.entries.length - 5} more entries`,
+            text: `... and ${processedData.entries.length - 5} more entries`,
             cls: 'timesheet-preview-more'
           });
         }

@@ -10,6 +10,11 @@ module.exports = {
   // Module file extensions
   moduleFileExtensions: ['ts', 'js'],
 
+  // Module name mapper for mocking
+  moduleNameMapper: {
+    '^obsidian$': '<rootDir>/tests/__mocks__/obsidian.ts'
+  },
+
   // Coverage configuration
   collectCoverage: false,
   coverageDirectory: 'coverage',

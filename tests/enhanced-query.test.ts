@@ -1,7 +1,6 @@
 // Test file demonstrating enhanced query language functionality
 
-import { columnMapper, ColumnMapper } from '../src/query/column-mapper';
-import { QueryInterpreter } from '../src/query/interpreter';
+import { columnMapper, ColumnMapper, QueryInterpreter } from '../src/query';
 import { TableColumn } from '../src/tables/base/TableConfig';
 
 describe('Enhanced Query Language', () => {

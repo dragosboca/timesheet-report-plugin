@@ -1,7 +1,5 @@
 
-import { parseQuery } from '../src/query/parser';
-import { QueryInterpreter, InterpreterError } from '../src/query/interpreter';
-import type { TimesheetQuery } from '../src/query/interpreter';
+import { parseQuery, QueryInterpreter, InterpreterError, TimesheetQuery } from '../src/query';
 
 describe('QueryInterpreter', () => {
   let interpreter: QueryInterpreter;

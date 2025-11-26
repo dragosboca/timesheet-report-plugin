@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const peggy = require('peggy');
 
-const grammarPath = path.join(__dirname, '../src/query/grammar.pegjs');
+const grammarPath = path.join(__dirname, '../src/query/grammar/query.pegjs');
 const outputPath = path.join(__dirname, '../src/query/generated-parser.ts');
 
 // Read the grammar file

@@ -24,12 +24,11 @@ import {
   ValueClauseNode,
   AlertClauseNode,
   ForecastClauseNode,
-  PercentageLiteralNode,
-  RelativeDateNode
-} from './ast';
-import { columnMapper } from './column-mapper';
-import { TableColumn } from '../tables/base/TableConfig';
-import { QueryParser } from './parser';
+
+} from '../ast';
+import { columnMapper } from '../column-mapper';
+import { TableColumn } from '../../tables/base/TableConfig';
+import { QueryParser } from '../parser';
 
 export interface TimesheetQuery {
   where?: {
@@ -85,7 +84,7 @@ export interface TimesheetQuery {
   }>;
 }
 
-export class QueryInterpreter implements ASTVisitor<any> {
+export class QueryInterpreter {
   private query: TimesheetQuery = {};
   private parser: QueryParser = new QueryParser();
 
@@ -162,7 +161,14 @@ export class QueryInterpreter implements ASTVisitor<any> {
   }
 
   visitShowClause(node: ShowClauseNode): any {
-    this.query.show = node.fields.map(field => field.name);
+    this.query.show = node.fields.map(field => {
+      if (field.type === 'Identifier') {
+        return field.name;
+      } else if (field.type === 'EnhancedField') {
+        return this.extractFieldName(field.expression);
+      }
+      return 'unknown';
+    });
 
     // Generate table columns from the SHOW clause
     try {
@@ -174,6 +180,19 @@ export class QueryInterpreter implements ASTVisitor<any> {
     }
 
     return this.query.show;
+  }
+
+  private extractFieldName(expression: any): string {
+    if (expression.type === 'Identifier') {
+      return expression.name;
+    }
+    if (expression.type === 'CalculatedField') {
+      return this.extractFieldName(expression.left);
+    }
+    if (expression.type === 'AggregationFunction') {
+      return `${expression.function}_${expression.field.name}`;
+    }
+    return 'unknown';
   }
 
   visitViewClause(node: ViewClauseNode): any {
@@ -221,6 +240,50 @@ export class QueryInterpreter implements ASTVisitor<any> {
     return node.items.map(item => this.visitExpression(item));
   }
 
+  visitEnhancedField(node: any): any {
+    return node;
+  }
+
+  visitOrderByClause(node: any): any {
+    return node;
+  }
+
+  visitGroupByClause(node: any): any {
+    return node;
+  }
+
+  visitHavingClause(node: any): any {
+    return node;
+  }
+
+  visitLimitClause(node: any): any {
+    return node;
+  }
+
+  visitInExpression(node: any): any {
+    return node;
+  }
+
+  visitNotInExpression(node: any): any {
+    return node;
+  }
+
+  visitLikeExpression(node: any): any {
+    return node;
+  }
+
+  visitIsNullExpression(node: any): any {
+    return node;
+  }
+
+  visitCalculatedField(node: any): any {
+    return node;
+  }
+
+  visitAggregationFunction(node: any): any {
+    return node;
+  }
+
   visitDateRange(node: DateRangeNode): any {
     return {
       start: this.visitLiteral(node.start),
@@ -243,9 +306,15 @@ export class QueryInterpreter implements ASTVisitor<any> {
     }
   }
 
-  private processWhereCondition(condition: BinaryExpressionNode): void {
+  private processWhereCondition(condition: any): void {
     if (!this.query.where) {
       this.query.where = {};
+    }
+
+    // Handle different condition types
+    if (condition.type !== 'BinaryExpression') {
+      // Skip non-binary expressions for now
+      return;
     }
 
     const result = this.visitBinaryExpression(condition);

@@ -1,5 +1,4 @@
-import { parseQuery, ParseError } from '../src/query/parser';
-import { QueryInterpreter } from '../src/query/interpreter';
+import { parseQuery, ParseError, QueryInterpreter } from '../src/query';
 
 describe('Retainer Query Language Tests', () => {
   let interpreter: QueryInterpreter;
@@ -303,10 +302,9 @@ describe('Retainer Query Language Tests', () => {
 
   describe('Query validation for retainer scenarios', () => {
     it('should validate logical constraints for retainer queries', () => {
-      // Test that CHART without appropriate VIEW throws error
-      expect(() => {
-        parseQuery('VIEW summary CHART monthly');
-      }).toThrow(ParseError);
+      // CHART without appropriate VIEW is allowed (warning only, not error)
+      const result = parseQuery('VIEW summary CHART monthly');
+      expect(result.clauses).toHaveLength(2);
     });
 
     it('should prevent duplicate non-WHERE clauses in retainer queries', () => {

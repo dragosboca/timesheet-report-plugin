@@ -1,0 +1,9 @@
+{
+  "vaultPath": "/Users/yourusername/Documents/ObsidianVault",
+  "_comment": "This is an example configuration file. Copy this to install-config.json and update with your vault path.",
+  "_examples": {
+    "macOS": "/Users/yourusername/Documents/MyVault",
+    "Windows": "C:\\Users\\yourusername\\Documents\\MyVault",
+    "Linux": "/home/yourusername/Documents/MyVault"
+  }
+}

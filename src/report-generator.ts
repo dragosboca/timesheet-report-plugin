@@ -1,31 +1,27 @@
 import { TFile, App, Notice } from 'obsidian';
 import TimesheetReportPlugin from './main';
 import { ObsidianTemplateManager } from './template-manager';
-import { UnifiedDataExtractor } from './core/unified-data-extractor';
 import { TableFactory } from './tables/TableFactory';
 import { TableOptions } from './tables/base/TableConfig';
 import { ObsidianReportSaver } from './report-saver';
 import { MonthData } from './types';
-import { QueryProcessor } from './core/query-processor';
-import { TimesheetQuery } from './query/interpreter';
+import { QueryExecutor, TimesheetQuery } from './query';
 
 export class ReportGenerator {
   private plugin: TimesheetReportPlugin;
   private app: App;
   private templateManager: ObsidianTemplateManager;
-  private dataExtractor: UnifiedDataExtractor;
   private reportSaver: ObsidianReportSaver;
   private tableFactory: TableFactory;
-  private queryProcessor: QueryProcessor;
+  private queryExecutor: QueryExecutor;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
     this.app = plugin.app;
     this.templateManager = new ObsidianTemplateManager(plugin);
-    this.dataExtractor = new UnifiedDataExtractor(plugin);
     this.reportSaver = new ObsidianReportSaver(plugin);
     this.tableFactory = new TableFactory(plugin);
-    this.queryProcessor = new QueryProcessor(plugin);
+    this.queryExecutor = new QueryExecutor(plugin);
   }
 
   /**
@@ -48,7 +44,7 @@ export class ReportGenerator {
       }
 
       // Process query to get data
-      const data = await this.queryProcessor.processQuery(query);
+      const data = await this.queryExecutor.execute(query);
 
       // Generate report content
       let content = '';
@@ -149,7 +145,7 @@ export class ReportGenerator {
    */
   async getAvailableMonths(): Promise<MonthData[]> {
     try {
-      return await this.dataExtractor.getAvailableMonths();
+      return await this.queryExecutor.getAvailableMonths();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.plugin.debugLogger?.log('Error getting available months:', errorMessage);

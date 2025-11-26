@@ -17,8 +17,37 @@ Thank you for your interest in contributing! This document provides guidelines f
 git clone https://github.com/yourusername/timesheet-report-plugin.git
 cd timesheet-report-plugin
 npm install
-npm run dev  # Start development with hot reload
 ```
+
+### Setting up Local Vault Testing
+
+To automatically install the plugin to your local Obsidian vault:
+
+1. Copy the example config:
+   ```bash
+   cp install-config.json.example install-config.json
+   ```
+
+2. Edit `install-config.json` with your vault path:
+   ```json
+   {
+     "vaultPath": "/path/to/your/obsidian/vault"
+   }
+   ```
+
+3. Build and install to your vault:
+   ```bash
+   npm run dev:install
+   ```
+
+4. Reload Obsidian (Ctrl/Cmd + R) to see the plugin
+
+### Development Commands
+
+- `npm run dev` - Watch mode with hot reload (still requires manual install)
+- `npm run build` - Build the plugin
+- `npm run dev:install` - Build and install to your local vault
+- `npm run install:plugin` - Install already-built files to vault
 
 ## Making Changes
 
@@ -39,10 +68,11 @@ Use conventional commit format:
 Example: `feat: add budget tracking for retainer projects`
 
 ### Testing Your Changes
-1. Build the plugin: `npm run build`
-2. Copy to your Obsidian plugins folder
+1. Build and install: `npm run dev:install`
+2. Reload Obsidian (Ctrl/Cmd + R)
 3. Test all major features work correctly
 4. Verify in both light and dark themes
+5. Check Developer Console (Ctrl/Cmd + Shift + I) for errors
 
 ## Pull Request Process
 

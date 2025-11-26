@@ -7,6 +7,8 @@
     "dev": "node esbuild.config.mjs",
     "build": "npm run build:parser && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "build:parser": "node scripts/build-parser.js",
+    "install:plugin": "node scripts/install-plugin.js",
+    "dev:install": "npm run build && npm run install:plugin",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

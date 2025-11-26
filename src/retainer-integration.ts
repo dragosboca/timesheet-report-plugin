@@ -6,7 +6,7 @@ import TimesheetReportPlugin from './main';
 import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './retainer-api';
 import { ExtractedTimeEntry } from './core/unified-data-extractor';
 import { QueryNode } from './query';
-import { TimesheetQuery } from './query/interpreter';
+import { TimesheetQuery } from './query';
 
 export interface ExtendedTimesheetReportSettings {
   // Existing settings

@@ -1,0 +1,165 @@
+# AI Development Reminders
+
+## NEVER DO THESE THINGS:
+
+### 1. NO BACKWARD COMPATIBILITY LAYERS
+- ❌ NEVER create wrapper classes for backward compatibility
+- ❌ NEVER keep old code "just in case"
+- ❌ NEVER create re-export files that just forward to new locations
+- ✅ ALWAYS update all code immediately when refactoring
+- ✅ ALWAYS delete old files after migrating
+- ✅ ALWAYS make clean breaks
+
+**Why:** Backward compatibility layers create:
+- Technical debt that never gets removed
+- Confusion about which API to use
+- Two ways to do the same thing
+- Maintenance burden
+- Code bloat
+
+**Example of what NOT to do:**
+```typescript
+// BAD - Don't do this!
+import { NewThing } from './new-location';
+export { NewThing as OldThing }; // ❌
+export class OldThing extends NewThing {} // ❌
+```
+
+**Instead, do this:**
+```typescript
+// GOOD - Just update all usages
+import { NewThing } from './new-location';
+// Use NewThing everywhere, delete old files
+```
+
+---
+
+### 2. NO CHANGE SUMMARY DOCUMENTS
+- ❌ NEVER create files like: BUILD_SUCCESS.md, REFACTORING_SUMMARY.md, MIGRATION_GUIDE.md
+- ❌ NEVER create files like: CHANGES.md, UPDATES.md, COMPLETED.md
+- ❌ NEVER document what you just did in a separate file
+- ✅ ALWAYS let git history track changes
+- ✅ ALWAYS update existing documentation (README, etc) if needed
+- ✅ ALWAYS write code comments for complex logic
+
+**Why:** Change summary docs:
+- Become outdated immediately
+- Clutter the repository
+- Are redundant with git history
+- Nobody reads them after the PR is merged
+- Create maintenance burden
+
+**What to do instead:**
+- Update the main README.md if the API changed
+- Update inline code comments for complex parts
+- Write a good commit message
+- That's it!
+
+---
+
+### 3. NO LEGACY CODE
+- ❌ NEVER keep old implementations "for reference"
+- ❌ NEVER comment out old code "in case we need it"
+- ❌ NEVER keep `.old` files
+- ✅ ALWAYS delete old code completely
+- ✅ ALWAYS trust git to preserve history
+- ✅ ALWAYS keep only the current, working implementation
+
+**Why:**
+- Git preserves everything
+- Old code confuses new developers
+- Creates clutter and technical debt
+- Wastes mental energy on "should I use old or new?"
+
+---
+
+### 4. USE PUBLIC MODULE APIs
+
+- ❌ NEVER import from internal module paths
+- ❌ NEVER reach into subdirectories of modules
+- ✅ ALWAYS use the public API exported from the module's index
+- ✅ ALWAYS import from the module root
+
+**Why:** Reaching into internals:
+- Creates tight coupling
+- Breaks encapsulation
+- Makes refactoring harder
+- Bypasses the public API contract
+- Can break when internal structure changes
+
+**Example of what NOT to do:**
+```typescript
+// BAD - Don't reach into internal modules!
+import { QueryExecutor } from './query/executor'; // ❌
+import { TimesheetQuery } from './query/interpreter'; // ❌
+import { parseQuery } from './query/parser'; // ❌
+```
+
+**Instead, do this:**
+```typescript
+// GOOD - Use the public API
+import { QueryExecutor, TimesheetQuery, parseQuery } from './query'; // ✅
+```
+
+**Rule:** If you're importing from a module that has an `index.ts`, import from the module root, not from internal files.
+
+---
+
+### 5. REFACTORING PRINCIPLES
+
+When refactoring:
+1. **Update ALL usages immediately** - Don't leave any file using old APIs
+2. **Delete old files** - Remove the old implementation completely
+3. **Test everything** - Run tests, build, verify it all works
+4. **Clean git history** - One clear commit, no "oops fixed that" commits
+5. **Move on** - Don't document the change, just let git history record it
+6. **Use public APIs** - Update imports to use module roots, not internals
+
+---
+
+## ALWAYS DO THESE THINGS:
+
+### 1. RESPECT MODULE BOUNDARIES
+- Import from module roots (public API)
+- Don't reach into internal module structure
+- Keep coupling loose
+- Respect encapsulation
+
+### 2. CLEAN CODE
+- Write clear, self-documenting code
+- Use descriptive variable and function names
+- Keep functions small and focused
+- Avoid deep nesting
+
+### 3. GOOD ARCHITECTURE
+- Single Responsibility Principle
+- Clear separation of concerns
+- Logical module organization
+- No circular dependencies
+
+### 4. SIMPLE SOLUTIONS
+- Prefer simple over clever
+- Avoid premature optimization
+- Delete code rather than add it
+- YAGNI (You Aren't Gonna Need It)
+
+### 5. WORKING SOFTWARE
+- Code must build without errors
+- Tests must pass
+- No breaking changes without updating all usages
+- Production-ready quality
+
+---
+
+## REMEMBER:
+
+> "The best code is no code at all. The second best code is code that's easy to delete."
+
+> "When you refactor, refactor completely. Half-measures create technical debt."
+
+> "Git is your documentation. Code is your documentation. Everything else is noise."
+
+---
+
+Last updated: 2024-11-26
+This file should be read by AI assistants before making changes.

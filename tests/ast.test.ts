@@ -174,7 +174,9 @@ describe('AST Utilities', () => {
       const emptyAST = createQuery([]);
       const stats = getASTStatistics(emptyAST);
 
-      expect(stats).toEqual({ Query: 1 });
+      expect(stats.Query).toBe(1);
+      expect(stats.totalNodes).toBe(1);
+      expect(stats.clauseCount).toBe(0);
     });
 
     it('should handle complex queries with many nodes', () => {
@@ -224,7 +226,7 @@ describe('AST Utilities', () => {
       const validation = validateAST(invalidAST);
 
       expect(validation.isValid).toBe(false);
-      expect(validation.errors).toContain('Node missing type property');
+      expect(validation.errors.map(e => e.message)).toContain('Node missing type property');
     });
 
     it('should validate literal nodes', () => {
@@ -244,8 +246,8 @@ describe('AST Utilities', () => {
       const validation = validateAST(invalidLiteral);
 
       expect(validation.isValid).toBe(false);
-      expect(validation.errors).toEqual(expect.arrayContaining(['Literal node missing value']));
-      expect(validation.errors).toEqual(expect.arrayContaining(['Invalid literal dataType: invalid']));
+      expect(validation.errors.map(e => e.message)).toEqual(expect.arrayContaining(['Literal node missing value']));
+      expect(validation.errors.map(e => e.message)).toEqual(expect.arrayContaining(['Invalid literal dataType: invalid']));
     });
 
     it('should validate identifier nodes', () => {
@@ -264,7 +266,7 @@ describe('AST Utilities', () => {
       const validation = validateAST(invalidIdentifier);
 
       expect(validation.isValid).toBe(false);
-      expect(validation.errors).toEqual(expect.arrayContaining(['Identifier node missing or empty name']));
+      expect(validation.errors.map(e => e.message)).toEqual(expect.arrayContaining(['Identifier node missing or empty name']));
     });
 
     it('should validate query nodes', () => {
@@ -283,7 +285,7 @@ describe('AST Utilities', () => {
       const validation = validateAST(invalidQuery);
 
       expect(validation.isValid).toBe(false);
-      expect(validation.errors).toEqual(expect.arrayContaining(['Query node must have clauses array']));
+      expect(validation.errors.map(e => e.message)).toEqual(expect.arrayContaining(['Query node must have clauses array']));
     });
 
     it('should validate deeply nested structures', () => {
