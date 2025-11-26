@@ -1,25 +1,25 @@
 import { TFile, App, Notice } from 'obsidian';
-import TimesheetReportPlugin from './main';
-import { ObsidianTemplateManager } from './template-manager';
-import { TableFactory } from './tables/TableFactory';
-import { TableOptions } from './tables/base/TableConfig';
-import { ObsidianReportSaver } from './report-saver';
-import { MonthData } from './types';
-import { QueryExecutor, TimesheetQuery } from './query';
+import TimesheetReportPlugin from '../main';
+import { TemplateManager } from './TemplateManager';
+import { TableFactory } from '../tables/TableFactory';
+import { TableOptions } from '../tables/base/TableConfig';
+import { ReportSaver } from './ReportSaver';
+import { MonthData } from '../types';
+import { QueryExecutor, TimesheetQuery } from '../query';
 
 export class ReportGenerator {
   private plugin: TimesheetReportPlugin;
   private app: App;
-  private templateManager: ObsidianTemplateManager;
-  private reportSaver: ObsidianReportSaver;
+  private templateManager: TemplateManager;
+  private reportSaver: ReportSaver;
   private tableFactory: TableFactory;
   private queryExecutor: QueryExecutor;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
     this.app = plugin.app;
-    this.templateManager = new ObsidianTemplateManager(plugin);
-    this.reportSaver = new ObsidianReportSaver(plugin);
+    this.templateManager = new TemplateManager(plugin);
+    this.reportSaver = new ReportSaver(plugin);
     this.tableFactory = new TableFactory(plugin);
     this.queryExecutor = new QueryExecutor(plugin);
   }
@@ -53,9 +53,25 @@ export class ReportGenerator {
       if (templatePath) {
         const templateContent = await this.templateManager.getTemplateContent(templatePath);
         if (templateContent) {
-          // For now, use default content generation
-          // TODO: Implement template processing with variables
-          content = this.generateIntervalReportContent(data, query, reportName, startDate, endDate);
+          // Generate table content
+          const tableOptions: TableOptions = {
+            format: 'markdown',
+            showTotal: true,
+            columns: query.columns
+          };
+
+          const table = this.tableFactory.createTimesheetTable(data.entries, tableOptions);
+          const tableContent = table.render({ format: 'markdown' });
+
+          // Replace template placeholders with actual values
+          content = this.templateManager.replaceIntervalTemplateValues(
+            templateContent,
+            tableContent,
+            data,
+            reportName,
+            startDate,
+            endDate
+          );
         } else {
           throw new Error('Template content could not be loaded');
         }

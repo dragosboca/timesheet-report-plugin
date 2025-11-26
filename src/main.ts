@@ -2,7 +2,7 @@ import { Plugin } from 'obsidian';
 import { TimesheetReportView, VIEW_TYPE_TIMESHEET } from './view';
 import { TimesheetReportSettings, DEFAULT_SETTINGS, TimesheetReportSettingTab } from './settings';
 import { DebugLogger } from './debug-logger';
-import { ReportGenerator } from './report-generator';
+import { ReportGenerator } from './reports';
 import { EmbedProcessor } from './embed-processor';
 import { QueryExecutor } from './query';
 // Import Chart.js initialization to register all required components
@@ -129,7 +129,7 @@ export default class TimesheetReportPlugin extends Plugin {
    * Show modal for generating interval reports
    */
   async showReportGeneratorModal(): Promise<void> {
-    const { IntervalReportModal } = await import('./interval-report-modal');
+    const { IntervalReportModal } = await import('./reports');
     new IntervalReportModal(this).open();
   }
 }

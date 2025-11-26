@@ -1,10 +1,10 @@
 import { Modal, App, Setting, Notice, TFile, DropdownComponent, TextComponent, ButtonComponent } from 'obsidian';
-import TimesheetReportPlugin from './main';
-import { TimesheetQuery, QueryInterpreter, QueryExecutor } from './query';
-import { TableFactory } from './tables/TableFactory';
-import { TableOptions } from './tables/base/TableConfig';
-import { ReportGenerator } from './report-generator';
-import { DateUtils } from './utils/date-utils';
+import TimesheetReportPlugin from '../../main';
+import { TimesheetQuery, QueryInterpreter, QueryExecutor } from '../../query';
+import { TableFactory } from '../../tables/TableFactory';
+import { TableOptions } from '../../tables/base/TableConfig';
+import { ReportGenerator } from '../ReportGenerator';
+import { DateUtils } from '../../utils/date-utils';
 
 interface DateInterval {
   start: Date;

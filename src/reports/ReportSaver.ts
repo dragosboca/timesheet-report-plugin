@@ -1,7 +1,7 @@
 import { TFile, TFolder, normalizePath, App } from 'obsidian';
-import TimesheetReportPlugin from './main';
+import TimesheetReportPlugin from '../main';
 
-export class ObsidianReportSaver {
+export class ReportSaver {
   private plugin: TimesheetReportPlugin;
   private app: App;
 

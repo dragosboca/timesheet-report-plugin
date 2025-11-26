@@ -5,6 +5,36 @@ All notable changes to the Timesheet Report Plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Reports Package**: New modular package structure for report functionality
+  - Created `src/reports/` package following the same pattern as `query/`, `charts/`, and `tables/`
+  - Comprehensive type definitions in `reports/types/` for reports and templates
+  - Clean public API with convenience methods via `reports/index.ts`
+  - Extensive documentation in `reports/README.md` covering architecture, usage, and extension
+  - Organized modals in `reports/modals/` subdirectory
+  - Simplified imports: `import { ReportGenerator, TemplateManager, ReportSaver } from './reports'`
+
+### Fixed
+- **Interval Report Templates**: Custom templates now properly work with interval reports
+  - Fixed `generateIntervalReport` to use template content when a template is selected
+  - Added `replaceIntervalTemplateValues` method to process template placeholders
+  - Template placeholders like `{{TABLE_PLACEHOLDER}}` are now correctly replaced with query results
+  - Added support for interval-specific placeholders: `{{START_DATE}}`, `{{END_DATE}}`, `{{TOTAL_HOURS}}`, `{{ENTRY_COUNT}}`, `{{UTILIZATION}}`, etc.
+  - Updated documentation in `INTERVAL_REPORTING_GUIDE.md` with template usage examples
+
+### Changed
+- **Code Organization**: Refactored report-related code into dedicated package
+  - Moved `report-generator.ts` → `reports/ReportGenerator.ts`
+  - Moved `report-saver.ts` → `reports/ReportSaver.ts`
+  - Moved `template-manager.ts` → `reports/TemplateManager.ts`
+  - Moved `interval-report-modal.ts` → `reports/modals/IntervalReportModal.ts`
+  - Renamed classes: `ObsidianTemplateManager` → `TemplateManager`, `ObsidianReportSaver` → `ReportSaver`
+  - Updated all imports throughout the codebase to use new package structure
+  - Removed old files from `src/` root directory
+  - Improved type safety by replacing `any` type with `ProcessedData` interface in template manager
+
 ## [1.0.0] - 2024-12-19
 
 ### Added
