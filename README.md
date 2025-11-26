@@ -502,10 +502,20 @@ Contributions welcome! The refactored codebase uses:
 
 MIT License - see `LICENSE` file for details.
 
+## Documentation
+
+For comprehensive guides and references:
+
+- **[USER_GUIDE.md](USER_GUIDE.md)** - Comprehensive user guide with detailed examples
+- **[TEMPLATE_GUIDE.md](TEMPLATE_GUIDE.md)** - Report template creation and customization
+- **[QUERY_TABLE_GUIDE.md](QUERY_TABLE_GUIDE.md)** - QueryTable usage and API reference
+- **[FRONTMATTER_FIELDS.md](FRONTMATTER_FIELDS.md)** - Complete frontmatter field reference
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[examples/query-examples.md](examples/query-examples.md)** - Canonical query language examples
+
 ## Support
 
 - **Issues**: GitHub repository issues
-- **Documentation**: Complete examples in this README
 - **Community**: Obsidian Discord #plugin-dev channel
 - **API Questions**: All file operations use official Obsidian TypeScript APIs
 
