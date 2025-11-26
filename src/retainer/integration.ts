@@ -2,11 +2,11 @@
 // Extends the existing timesheet plugin to support sophisticated retainer management
 
 import { Notice } from 'obsidian';
-import TimesheetReportPlugin from './main';
-import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './retainer-api';
-import { ExtractedTimeEntry } from './core/unified-data-extractor';
-import { QueryNode } from './query';
-import { TimesheetQuery } from './query';
+import TimesheetReportPlugin from '../main';
+import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './api';
+import { ExtractedTimeEntry } from '../core/unified-data-extractor';
+import { QueryNode } from '../query';
+import { TimesheetQuery } from '../query';
 
 export interface ExtendedTimesheetReportSettings {
   // Existing settings

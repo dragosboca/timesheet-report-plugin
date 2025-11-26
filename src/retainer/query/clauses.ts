@@ -10,12 +10,12 @@ import {
   ValueClauseNode,
   AlertClauseNode,
   ForecastClauseNode
-} from '../ast';
+} from '../../query/ast';
 import {
   BaseClauseHandler,
   ClauseContext,
   ClauseValidationResult
-} from './base';
+} from '../../query/clauses/base';
 
 // ============================================================================
 // RETAINER CLAUSE RESULT

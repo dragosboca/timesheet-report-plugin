@@ -2,10 +2,10 @@
 // Extends the existing settings with comprehensive retainer management options
 
 import { App, PluginSettingTab, Setting, TFile, Notice } from 'obsidian';
-import TimesheetReportPlugin from './main';
-import { RetainerSettings, ServiceCategory, RetainerContract, RetainerPeriod } from './retainer-api';
-import { RetainerUtils } from './retainer-api';
-import { TimesheetReportSettings } from './settings';
+import TimesheetReportPlugin from '../main';
+import { RetainerSettings, ServiceCategory, RetainerContract, RetainerPeriod } from './api';
+import { RetainerUtils } from './api';
+import { TimesheetReportSettings } from '../settings';
 
 export interface ExtendedTimesheetReportSettings {
   // Existing core settings
