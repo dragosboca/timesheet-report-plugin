@@ -177,7 +177,7 @@ export class IntervalReportModal extends Modal {
     const presets: DateInterval[] = [
       this.createPreset('Current Month', 0, 'month'),
       this.createPreset('Last Month', -1, 'month'),
-      this.createPreset('Last 3 Months', -3, 'month'),
+      this.createPreset('Last 3 Months', -3, 'months'),
       this.createPreset('Current Quarter', 0, 'quarter'),
       this.createPreset('Last Quarter', -1, 'quarter'),
       this.createPreset('Current Year', 0, 'year'),
@@ -203,7 +203,7 @@ export class IntervalReportModal extends Modal {
     });
   }
 
-  private createPreset(label: string, offset: number, unit: 'month' | 'quarter' | 'year' | 'days'): DateInterval {
+  private createPreset(label: string, offset: number, unit: 'month' | 'months' | 'quarter' | 'year' | 'days'): DateInterval {
     const now = new Date();
     let start: Date, end: Date;
 
@@ -213,11 +213,18 @@ export class IntervalReportModal extends Modal {
         end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
         break;
 
-      case 'quarter':
+      case 'months':
+        // For multi-month ranges: offset is negative, gives range from (offset) months ago to now
+        start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+
+      case 'quarter': {
         const quarterStart = Math.floor(now.getMonth() / 3) * 3;
         start = new Date(now.getFullYear(), quarterStart + (offset * 3), 1);
         end = new Date(now.getFullYear(), quarterStart + (offset * 3) + 3, 0);
         break;
+      }
 
       case 'year':
         start = new Date(now.getFullYear() + offset, 0, 1);
@@ -639,7 +646,11 @@ export class IntervalReportModal extends Modal {
   }
 
   private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    // Use local time instead of UTC to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private setGeneratingState(generating: boolean): void {
