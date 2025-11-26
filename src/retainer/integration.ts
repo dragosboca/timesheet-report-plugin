@@ -4,7 +4,7 @@
 import { Notice } from 'obsidian';
 import TimesheetReportPlugin from '../main';
 import { RetainerAPI, RetainerContract, RetainerUsage, RetainerSettings, ValueImpact } from './api';
-import { ExtractedTimeEntry } from '../query/data-extractors';
+import { TimeEntry } from '../datasource';
 import { QueryNode } from '../query';
 import { TimesheetQuery } from '../query';
 
@@ -68,8 +68,8 @@ export class RetainerIntegration {
     this.retainerAPI = new RetainerAPI(this.settings.retainer.contract);
   }
 
-  // Convert ExtractedTimeEntry to RetainerUsage
-  private convertTimeEntryToRetainerUsage(entry: ExtractedTimeEntry, metadata: RetainerEntryMetadata): RetainerUsage {
+  // Convert TimeEntry to RetainerUsage
+  private convertTimeEntryToRetainerUsage(entry: TimeEntry, metadata: RetainerEntryMetadata): RetainerUsage {
     return {
       date: new Date(entry.date),
       hours: entry.hours,
@@ -85,7 +85,7 @@ export class RetainerIntegration {
   }
 
   // Process timesheet entries for retainer tracking
-  processRetainerEntries(entries: ExtractedTimeEntry[]): RetainerUsage[] {
+  processRetainerEntries(entries: TimeEntry[]): RetainerUsage[] {
     if (!this.retainerAPI) {
       throw new Error('Retainer API not initialized');
     }
@@ -107,7 +107,7 @@ export class RetainerIntegration {
   }
 
   // Extract retainer metadata from timesheet entry
-  private extractRetainerMetadata(entry: ExtractedTimeEntry): RetainerEntryMetadata {
+  private extractRetainerMetadata(entry: TimeEntry): RetainerEntryMetadata {
     const metadata: RetainerEntryMetadata = {
       serviceCategory: 'general',
       priority: 'routine',

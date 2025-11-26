@@ -2,13 +2,13 @@
 // This bridges the query system with the data layer
 
 import { TimesheetQuery } from './interpreter';
-import { ExtractedTimeEntry, UnifiedDataExtractor, ExtractionOptions } from '../data-extractors';
+import { TimeEntry, QueryOptions, TimesheetDataSource, createTimesheetDataSource } from '../../datasource';
 import { DateUtils } from '../../utils/date-utils';
 import TimesheetReportPlugin from '../../main';
 import { MonthData } from '../../types';
 
 export interface ProcessedData {
-  entries: ExtractedTimeEntry[];
+  entries: TimeEntry[];
   monthlyData: MonthlyDataPoint[];
   trendData: TrendData;
   summary: SummaryData;
@@ -46,33 +46,20 @@ export interface SummaryData {
   budgetRemaining?: number;
 }
 
-/**
- * Executes timesheet queries and returns processed data
- * This is the bridge between the query system and the data layer
- */
 export class QueryExecutor {
   private plugin: TimesheetReportPlugin;
-  private dataExtractor: UnifiedDataExtractor;
+  private dataSource: TimesheetDataSource;
 
   constructor(plugin: TimesheetReportPlugin) {
     this.plugin = plugin;
-    this.dataExtractor = new UnifiedDataExtractor(plugin);
+    this.dataSource = createTimesheetDataSource(plugin);
   }
 
-  /**
-   * Execute a timesheet query and return filtered/aggregated data
-   */
   async execute(query: TimesheetQuery): Promise<ProcessedData> {
-    // Convert query to extraction options
-    const extractionOptions = this.convertQueryToExtractionOptions(query);
-
-    // Get raw data
-    const entries = await this.dataExtractor.getTimesheetData(extractionOptions);
-
-    // Apply additional query-specific filters
+    const queryOptions = this.convertQueryToQueryOptions(query);
+    const entries = await this.dataSource.query(queryOptions);
     const filteredEntries = this.applyQueryFilters(entries, query);
 
-    // Generate aggregated data
     const monthlyData = this.generateMonthlyData(filteredEntries);
     const trendData = this.generateTrendData(monthlyData, query);
     const summary = this.generateSummary(filteredEntries, query);
@@ -89,11 +76,8 @@ export class QueryExecutor {
     };
   }
 
-  /**
-   * Convert TimesheetQuery to ExtractionOptions
-   */
-  private convertQueryToExtractionOptions(query: TimesheetQuery): ExtractionOptions {
-    const options: ExtractionOptions = {};
+  private convertQueryToQueryOptions(query: TimesheetQuery): QueryOptions {
+    const options: QueryOptions = {};
 
     if (query.where) {
       options.year = query.where.year;
@@ -108,7 +92,6 @@ export class QueryExecutor {
       }
     }
 
-    // Apply period filters to extraction options
     if (query.period) {
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -135,22 +118,16 @@ export class QueryExecutor {
           };
           break;
         }
-        // 'all-time' uses no additional filters
       }
     }
 
     return options;
   }
 
-  /**
-   * Apply query-specific filters that couldn't be handled at extraction level
-   */
-  private applyQueryFilters(entries: ExtractedTimeEntry[], query: TimesheetQuery): ExtractedTimeEntry[] {
+  private applyQueryFilters(entries: TimeEntry[], query: TimesheetQuery): TimeEntry[] {
     let filtered = entries;
 
-    // Apply additional WHERE conditions
     if (query.where) {
-      // Service filter (from retainer extensions)
       if (query.where.service) {
         filtered = filtered.filter(entry =>
           entry.notes?.toLowerCase().includes(query.where!.service!.toLowerCase()) ||
@@ -158,14 +135,12 @@ export class QueryExecutor {
         );
       }
 
-      // Category filter
       if (query.where.category) {
         filtered = filtered.filter(entry =>
           entry.notes?.toLowerCase().includes(query.where!.category!.toLowerCase())
         );
       }
 
-      // Utilization filter (entries above/below certain utilization threshold)
       if (query.where.utilization !== undefined) {
         const threshold = query.where.utilization;
         filtered = filtered.filter(entry => {
@@ -175,7 +150,6 @@ export class QueryExecutor {
         });
       }
 
-      // Value filter (entries above certain hourly value)
       if (query.where.value !== undefined && query.where.value > 0) {
         filtered = filtered.filter(entry => {
           const hourlyValue = entry.rate || 0;
@@ -187,17 +161,13 @@ export class QueryExecutor {
     return filtered;
   }
 
-  /**
-   * Generate monthly aggregated data
-   */
-  private generateMonthlyData(entries: ExtractedTimeEntry[]): MonthlyDataPoint[] {
+  private generateMonthlyData(entries: TimeEntry[]): MonthlyDataPoint[] {
     const monthlyMap = new Map<string, {
-      entries: ExtractedTimeEntry[];
+      entries: TimeEntry[];
       year: number;
       month: number;
     }>();
 
-    // Group entries by month
     for (const entry of entries) {
       const year = entry.date.getFullYear();
       const month = entry.date.getMonth() + 1;
@@ -214,9 +184,8 @@ export class QueryExecutor {
       monthlyMap.get(key)!.entries.push(entry);
     }
 
-    // Convert to monthly data points
     const monthlyData: MonthlyDataPoint[] = [];
-    const sortedKeys = Array.from(monthlyMap.keys()).sort().reverse(); // Most recent first
+    const sortedKeys = Array.from(monthlyMap.keys()).sort().reverse();
 
     let cumulativeHours = 0;
 
@@ -228,7 +197,6 @@ export class QueryExecutor {
       const totalInvoiced = monthEntries.reduce((sum, entry) => sum + (entry.hours * (entry.rate || 0)), 0);
       const avgRate = totalHours > 0 ? totalInvoiced / totalHours : 0;
 
-      // Calculate utilization
       const hoursPerWorkday = this.plugin.settings.hoursPerWorkday || 8;
       const workingDays = DateUtils.getWorkingDaysInMonth(year, month);
       const targetHoursForMonth = workingDays * hoursPerWorkday;
@@ -243,7 +211,6 @@ export class QueryExecutor {
         console.log(`[Timesheet] ${label} - Hours: ${totalHours}, Target: ${targetHoursForMonth}, Utilization: ${Math.round(utilization * 100)}%`);
       }
 
-      // Check for budget project
       const projectType = this.plugin.settings.project?.type;
       const budgetHours = projectType === 'fixed-hours' ? this.plugin.settings.project?.budgetHours : undefined;
 
@@ -273,17 +240,12 @@ export class QueryExecutor {
     return monthlyData;
   }
 
-  /**
-   * Generate trend data for charts
-   */
   private generateTrendData(monthlyData: MonthlyDataPoint[], query: TimesheetQuery): TrendData {
-    // Sort data chronologically for trends
     const sortedData = [...monthlyData].sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return a.month - b.month;
     });
 
-    // Limit data points based on query parameters
     let limitedData = sortedData;
 
     if (query.period === 'last-6-months') {
@@ -291,13 +253,13 @@ export class QueryExecutor {
     } else if (query.period === 'last-12-months') {
       limitedData = sortedData.slice(-12);
     } else if (query.size === 'compact') {
-      limitedData = sortedData.slice(-6); // Compact view shows less data
+      limitedData = sortedData.slice(-6);
     }
 
     const trendData = {
       labels: limitedData.map(point => point.label),
       hours: limitedData.map(point => point.hours),
-      utilization: limitedData.map(point => point.utilization), // Keep as decimal (0-1), chart will convert to percentage
+      utilization: limitedData.map(point => point.utilization),
       invoiced: limitedData.map(point => point.invoiced)
     };
 
@@ -313,19 +275,14 @@ export class QueryExecutor {
     return trendData;
   }
 
-  /**
-   * Generate summary for current period
-   */
-  private generateSummary(entries: ExtractedTimeEntry[], query: TimesheetQuery): SummaryData {
+  private generateSummary(entries: TimeEntry[], query: TimesheetQuery): SummaryData {
     const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
     const totalInvoiced = entries.reduce((sum, entry) => sum + (entry.hours * (entry.rate || 0)), 0);
 
-    // Calculate utilization based on months that have actual data
     let utilization = 0;
     const hoursPerWorkday = this.plugin.settings.hoursPerWorkday || 8;
 
     if (entries.length > 0) {
-      // Group entries by month to get unique months with data
       const monthsWithData = new Set<string>();
       for (const entry of entries) {
         const year = entry.date.getFullYear();
@@ -334,7 +291,6 @@ export class QueryExecutor {
         monthsWithData.add(key);
       }
 
-      // Calculate target hours based only on months that have data
       let targetHours = 0;
       for (const monthKey of monthsWithData) {
         const [yearStr, monthStr] = monthKey.split('-');
@@ -351,7 +307,6 @@ export class QueryExecutor {
       }
     }
 
-    // Budget calculations
     const projectType = this.plugin.settings.project?.type;
     const budgetHours = projectType === 'fixed-hours' ? this.plugin.settings.project?.budgetHours : undefined;
 
@@ -373,34 +328,20 @@ export class QueryExecutor {
     };
   }
 
-  /**
-   * Generate year summary
-   */
-  private generateYearSummary(entries: ExtractedTimeEntry[]): SummaryData {
+  private generateYearSummary(entries: TimeEntry[]): SummaryData {
     const currentYear = new Date().getFullYear();
     const yearEntries = entries.filter(entry => entry.date.getFullYear() === currentYear);
-
     return this.generateSummary(yearEntries, { period: 'current-year' });
   }
 
-  /**
-   * Generate all-time summary
-   */
-  private generateAllTimeSummary(entries: ExtractedTimeEntry[]): SummaryData {
+  private generateAllTimeSummary(entries: TimeEntry[]): SummaryData {
     return this.generateSummary(entries, { period: 'all-time' });
   }
 
-  /**
-   * Get available months/years from timesheet data
-   */
   async getAvailableMonths(): Promise<MonthData[]> {
-    // Get all timesheet data (no filters)
-    const entries = await this.dataExtractor.getTimesheetData({});
-
-    // Generate monthly data using existing logic
+    const entries = await this.dataSource.query({});
     const monthlyData = this.generateMonthlyData(entries);
 
-    // Convert MonthlyDataPoint to MonthData format
     return monthlyData.map(point => ({
       year: point.year,
       month: point.month,
@@ -412,10 +353,7 @@ export class QueryExecutor {
     } as MonthData));
   }
 
-  /**
-   * Clear any cached data
-   */
   clearCache(): void {
-    this.dataExtractor.clearCache();
+    this.dataSource.clearCache();
   }
 }
