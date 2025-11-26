@@ -2,6 +2,9 @@
 
 A comprehensive timesheet reporting plugin that generates interactive visualizations, tracks project budgets, and creates detailed reports from your timesheet data stored in Obsidian. Features a powerful SQL-like query language with grammar-based parser for flexible data filtering and reporting.
 
+> **⚠️ Disclaimer**  
+> This plugin is vibe-coded and built for personal use. While it's fully functional, the codebase may not follow all best practices. For the moment, I'm not accepting pull requests, but I **welcome all feedback, suggestions, and bug reports**! Feel free to open issues or reach out with your thoughts.
+
 ## Table of Contents
 
 1. [Features](#features)
